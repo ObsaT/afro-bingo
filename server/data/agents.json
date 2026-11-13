@@ -1,0 +1,18 @@
+[
+  {
+    "id": "agent_1",
+    "name": "Bole Medhanealem Agent",
+    "phone": "0911445566",
+    "bankName": "Telebirr & CBE",
+    "accountNumber": "1000293847561",
+    "telegramUsername": "bole_afro_agent",
+    "pin": "1234",
+    "commissionRate": 7,
+    "balance": 1700,
+    "totalPlayersOnboarded": 0,
+    "totalDepositsHandled": 3300,
+    "totalCommissionEarned": 231,
+    "status": "active",
+    "createdAt": "2026-11-13"
+  }
+]

@@ -1,0 +1,11 @@
+node_modules/
+client/node_modules/
+client/dist/
+.env
+.env.local
+cloudflared
+tunnel.log
+server/audio_cache/
+photo_*.jpg
+.DS_Store
+*.log

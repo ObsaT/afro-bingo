@@ -1,0 +1,12 @@
+{
+  "firstJoin": {
+    "accAmount": 10,
+    "playAmount": 60
+  },
+  "invitation": {
+    "inviterAccAmount": 7,
+    "inviterPlayAmount": 25,
+    "friendAccAmount": 5,
+    "friendPlayAmount": 20
+  }
+}
