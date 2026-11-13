@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { io } from 'socket.io-client';
+import { playDepositAlertSound, playWithdrawalAlertSound } from '../../utils/audio';
 import {
   CreditCard,
   Users,
@@ -199,6 +201,37 @@ export default function AdminDashboard({ onExit }) {
       fetchAgents();
       fetchSettings();
       fetchBanks();
+
+      // Real-time Socket listener for incoming deposits & withdrawals with sound alerts
+      const socket = io('/', { transports: ['websocket', 'polling'] });
+
+      socket.on('new_deposit_request', (data) => {
+        playDepositAlertSound();
+        const amt = data.tx?.amount || 0;
+        const who = data.tx?.username || data.tx?.accountNumber || 'Player';
+        const method = data.tx?.bankName || 'Bank';
+        showNotification(`💰 አዲስ ተቀማጭ ጥያቄ፡ ${amt} ETB ከ ${who} (${method})`);
+        fetchPayments();
+        fetchStats();
+      });
+
+      socket.on('new_withdrawal_request', (data) => {
+        playWithdrawalAlertSound();
+        const amt = data.tx?.netPayout || data.tx?.amount || 0;
+        const who = data.tx?.fullName || data.tx?.username || 'Player';
+        showNotification(`💸 አዲስ ገንዘብ ማውጣት ጥያቄ፡ ${amt} ETB ለ ${who}`);
+        fetchPayments();
+        fetchStats();
+      });
+
+      socket.on('transactions_updated', () => {
+        fetchPayments();
+        fetchStats();
+      });
+
+      return () => {
+        socket.disconnect();
+      };
     }
   }, [token]);
 

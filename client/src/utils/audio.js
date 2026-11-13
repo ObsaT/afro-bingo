@@ -226,3 +226,97 @@ export function announceBingo(lang = 'am', gender = 'female') {
     }
   } catch (e) {}
 }
+
+// ----------------------------------------------------
+// TRANSACTION NOTIFICATION SOUNDS (Deposit & Withdrawal)
+// ----------------------------------------------------
+
+/**
+ * Play a high-pitched, satisfying "Cash In / Coin Register" chime
+ * Triggered on new incoming deposit requests or deposit approvals
+ */
+export function playDepositAlertSound() {
+  try {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+    if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+
+    // Trigger subtle phone vibration if supported
+    if (typeof navigator !== 'undefined' && navigator.vibrate) {
+      navigator.vibrate([120, 60, 150]);
+    }
+
+    const startTime = ctx.currentTime;
+    // Chime chord sequence: B5 -> E6 -> G#6 -> B6 (bright major chord)
+    const notes = [
+      { freq: 987.77, delay: 0.0, dur: 0.35, gain: 0.3 },
+      { freq: 1318.51, delay: 0.08, dur: 0.4, gain: 0.35 },
+      { freq: 1661.22, delay: 0.16, dur: 0.45, gain: 0.35 },
+      { freq: 1975.53, delay: 0.24, dur: 0.6, gain: 0.4 },
+    ];
+
+    notes.forEach(({ freq, delay, dur, gain: noteGain }) => {
+      const osc = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, startTime + delay);
+
+      gainNode.gain.setValueAtTime(noteGain, startTime + delay);
+      gainNode.gain.exponentialRampToValueAtTime(0.0001, startTime + delay + dur);
+
+      osc.connect(gainNode);
+      gainNode.connect(ctx.destination);
+
+      osc.start(startTime + delay);
+      osc.stop(startTime + delay + dur);
+    });
+  } catch (e) {
+    console.warn('Error playing deposit alert sound:', e);
+  }
+}
+
+/**
+ * Play an attention-grabbing, two-tone "Cashier Action Needed" chime
+ * Triggered on incoming withdrawal requests or cashout approvals
+ */
+export function playWithdrawalAlertSound() {
+  try {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+    if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+
+    // Trigger subtle phone vibration if supported
+    if (typeof navigator !== 'undefined' && navigator.vibrate) {
+      navigator.vibrate([180, 80, 180]);
+    }
+
+    const startTime = ctx.currentTime;
+    // Attention chime: E5 -> G5 -> C6 -> E6
+    const notes = [
+      { freq: 659.25, delay: 0.0, dur: 0.25, gain: 0.35 },
+      { freq: 783.99, delay: 0.1, dur: 0.25, gain: 0.35 },
+      { freq: 1046.5, delay: 0.2, dur: 0.35, gain: 0.4 },
+      { freq: 1318.51, delay: 0.32, dur: 0.65, gain: 0.45 },
+    ];
+
+    notes.forEach(({ freq, delay, dur, gain: noteGain }) => {
+      const osc = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, startTime + delay);
+
+      gainNode.gain.setValueAtTime(noteGain, startTime + delay);
+      gainNode.gain.exponentialRampToValueAtTime(0.0001, startTime + delay + dur);
+
+      osc.connect(gainNode);
+      gainNode.connect(ctx.destination);
+
+      osc.start(startTime + delay);
+      osc.stop(startTime + delay + dur);
+    });
+  } catch (e) {
+    console.warn('Error playing withdrawal alert sound:', e);
+  }
+}

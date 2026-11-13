@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { io } from 'socket.io-client';
+import { playDepositAlertSound, playWithdrawalAlertSound } from '../../utils/audio';
 import {
   Briefcase,
   CheckCircle,
@@ -144,10 +145,8 @@ export default function AgentPortal({ onExit }) {
           if (prev.some((p) => p.id === data.tx.id)) return prev;
           return [data.tx, ...prev];
         });
-        showNotification(`🔔 አዲስ ተቀማጭ ጥያቄ፡ ${data.tx.amount} ETB ከ ${data.tx.username || data.tx.accountNumber}!`);
-        try {
-          new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3').play().catch(() => {});
-        } catch (e) {}
+        showNotification(`💰 አዲስ ተቀማጭ ጥያቄ፡ ${data.tx.amount} ETB ከ ${data.tx.username || data.tx.accountNumber}!`);
+        playDepositAlertSound();
       }
     });
 
@@ -163,9 +162,7 @@ export default function AgentPortal({ onExit }) {
           return [data.tx, ...prev];
         });
         showNotification(`💸 አዲስ ገንዘብ ማውጣት ጥያቄ፡ ${data.tx.netPayout || data.tx.amount} ETB ለ ${data.tx.fullName || data.tx.username}!`);
-        try {
-          new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3').play().catch(() => {});
-        } catch (e) {}
+        playWithdrawalAlertSound();
       }
     });
 

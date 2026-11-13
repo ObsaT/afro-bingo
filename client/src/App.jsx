@@ -13,7 +13,7 @@ import AdminDashboard from './components/admin/AdminDashboard';
 import AgentPortal from './components/agent/AgentPortal';
 import InstallAppModal from './components/InstallAppModal';
 import ManagerSelectorScreen from './components/ManagerSelectorScreen';
-import { unlockAudio } from './utils/audio';
+import { unlockAudio, playDepositAlertSound, playWithdrawalAlertSound } from './utils/audio';
 
 export default function App() {
   const isAdminUrl = window.location.pathname === '/admin' || window.location.search.includes('admin=true');
@@ -247,6 +247,13 @@ export default function App() {
       setUser((prev) => {
         if (!prev) return prev;
         if (data.userId && String(data.userId) !== String(prev.id)) return prev;
+
+        const oldTotal = Number(prev.mainWallet || 0) + Number(prev.playWallet || 0);
+        const newTotal = Number(data.mainWallet ?? prev.mainWallet) + Number(data.playWallet ?? prev.playWallet);
+        if (newTotal > oldTotal) {
+          playDepositAlertSound();
+        }
+
         return {
           ...prev,
           mainWallet: data.mainWallet !== undefined && data.mainWallet !== null ? data.mainWallet : prev.mainWallet,
