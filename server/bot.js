@@ -139,19 +139,58 @@ ${bonusNotice}
 
 Tap the button below to launch the game directly inside Telegram! 👇`;
 
+      const supportUser = (engine?.supportSettings?.telegramUsername || 'afrobingo_support').replace(/^@/, '');
+      const supportGroup = engine?.supportSettings?.supportGroup || 'https://t.me/afrobingo_support';
+      const supportChannel = engine?.supportSettings?.supportChannel || 'https://t.me/afrobingo_updates';
+
       const keyboard = new InlineKeyboard()
         .webApp('🎮 Play Afro Bingo', miniAppUrl)
         .row()
         .webApp('💳 Deposit (ዲፖዚት)', miniAppUrl)
         .webApp('👑 Admin', `${miniAppUrl}?admin=true`)
         .row()
-        .url('📢 Channel & Updates', 'https://t.me/afrobingo_updates')
-        .url('💬 Support Group', 'https://t.me/afrobingo_support');
+        .url('📢 Channel & Updates', supportChannel)
+        .url('💬 Support Desk', `https://t.me/${supportUser}`);
 
       await ctx.reply(welcomeText, {
         parse_mode: 'Markdown',
         reply_markup: keyboard,
       });
+    });
+
+    // Support & Help Command
+    bot.command(['support', 'help', 'contact'], async (ctx) => {
+      const support = engine?.supportSettings || {
+        telegramUsername: 'afrobingo_support',
+        phone: '+251911445566',
+        supportGroup: 'https://t.me/afrobingo_support',
+        supportChannel: 'https://t.me/afrobingo_updates',
+        title: 'Afro Bingo Customer Support',
+        availableHours: '24/7 Live Support',
+        notice: 'ያጋጠሞትን ማንኛውንም የክፍያ ወይም የጨዋታ ጥያቄ በቴሌግራም አነጋግሩን። Contact our official support agent for instant assistance.',
+      };
+      const supportUser = (support.telegramUsername || 'afrobingo_support').replace(/^@/, '');
+      const supportMsg = `🎧 *የደንበኞች ድጋፍ መስጫ (AFRO BINGO Customer Support)*
+
+👤 *Support Officer:* ${support.title || 'Official Support Agent'}
+⏰ *Operating Hours:* ${support.availableHours || '24/7 Live Support'}
+📞 *Phone / SMS:* \`${support.phone || 'N/A'}\`
+💬 *Direct Telegram:* @${supportUser}
+
+ℹ️ *መረጃ (Notice):*
+_${support.notice || 'ያጋጠሞትን ማንኛውንም የክፍያ ወይም የጨዋታ ጥያቄ በቴሌግራም አነጋግሩን።'}_`;
+
+      const kb = new InlineKeyboard()
+        .url('💬 Direct Message Support User', `https://t.me/${supportUser}`)
+        .row();
+      if (support.supportGroup) {
+        kb.url('👥 Join Support Group', support.supportGroup);
+      }
+      if (support.supportChannel) {
+        kb.url('📢 News & Updates', support.supportChannel);
+      }
+
+      await ctx.reply(supportMsg, { parse_mode: 'Markdown', reply_markup: kb });
     });
 
     // Invitation & Referral Command

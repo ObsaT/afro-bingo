@@ -666,6 +666,7 @@ app.get('/api/admin/game-settings', requireAdmin, (req, res) => {
     voiceLanguage: gameEngine.voiceLanguage,
     voiceGender: gameEngine.voiceGender,
     bonusSettings: gameEngine.bonusSettings,
+    supportSettings: gameEngine.supportSettings,
     state: gameEngine.state,
     gameId: gameEngine.gameId,
   });
@@ -675,6 +676,20 @@ app.get('/api/admin/game-settings', requireAdmin, (req, res) => {
 app.post('/api/admin/game-settings', requireAdmin, (req, res) => {
   const result = adminService.updateGameSettings(req.body);
   res.json(result);
+});
+
+// Support Settings Endpoints (Public & Admin)
+app.get('/api/support-settings', (req, res) => {
+  res.json(gameEngine.supportSettings);
+});
+
+app.get('/api/admin/support-settings', requireAdmin, (req, res) => {
+  res.json(gameEngine.supportSettings);
+});
+
+app.post('/api/admin/support-settings', requireAdmin, (req, res) => {
+  const success = gameEngine.saveSupportSettings(req.body);
+  res.json({ success, supportSettings: gameEngine.supportSettings });
 });
 
 // Direct Bonus Settings Endpoints

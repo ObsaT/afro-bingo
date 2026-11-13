@@ -46,6 +46,7 @@ export default function App() {
   const [voiceLanguage, setVoiceLanguage] = useState('am');
   const [voiceGender, setVoiceGender] = useState('female');
   const [bonusSettings, setBonusSettings] = useState(null);
+  const [supportSettings, setSupportSettings] = useState(null);
 
   const socketRef = useRef(null);
 
@@ -137,7 +138,9 @@ export default function App() {
       setTakenCartelas(state.takenCartelas || []);
       setMyCartelas(state.userCartelas || []);
       setWinners(state.winners || []);
+      if (state.winners) setWinners(state.winners);
       if (state.bonusSettings) setBonusSettings(state.bonusSettings);
+      if (state.supportSettings) setSupportSettings(state.supportSettings);
       if (state.houseCutPercent !== undefined) setHouseCutPercent(state.houseCutPercent);
       if (state.maxCartelasPerPlayer) setMaxCartelasPerPlayer(state.maxCartelasPerPlayer);
       if (state.totalCartelas) setTotalCartelas(state.totalCartelas);
@@ -238,6 +241,18 @@ export default function App() {
         alert(data.message);
       }
     });
+
+    socket.on('support_settings_updated', (data) => {
+      if (data) setSupportSettings(data);
+    });
+
+    // Fetch initial support settings fallback
+    fetch('/api/support-settings')
+      .then((r) => r.json())
+      .then((data) => {
+        if (data) setSupportSettings(data);
+      })
+      .catch(() => {});
 
     return () => {
       socket.disconnect();
@@ -357,6 +372,7 @@ export default function App() {
         onOpenWithdrawal={() => setActiveTab('wallet')}
         onOpenAdmin={() => setShowAdmin(true)}
         onOpenAgent={() => setShowAgent(true)}
+        supportSettings={supportSettings}
       />
 
       {/* Main Tab Content */}
@@ -421,6 +437,7 @@ export default function App() {
           <WalletModal
             user={user}
             bonusSettings={bonusSettings}
+            supportSettings={supportSettings}
             onDeposit={handleDeposit}
             onTransfer={handleTransfer}
             onWithdraw={handleWithdraw}
@@ -435,6 +452,7 @@ export default function App() {
         {activeTab === 'profile' && (
           <ProfileModal
             user={user}
+            supportSettings={supportSettings}
             onOpenDeposit={() => setActiveTab('wallet')}
             onOpenAdmin={() => setShowAdmin(true)}
             onOpenAgent={() => setShowAgent(true)}

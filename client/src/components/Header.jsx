@@ -11,6 +11,7 @@ import {
   Plus,
   ArrowLeftRight,
   ExternalLink,
+  Headphones,
 } from 'lucide-react';
 
 export default function Header({
@@ -27,9 +28,12 @@ export default function Header({
   onOpenWithdrawal,
   onOpenAdmin,
   onOpenAgent,
+  supportSettings = null,
 }) {
   const [showMenu, setShowMenu] = useState(false);
   const [showBalanceDropdown, setShowBalanceDropdown] = useState(false);
+
+  const supportUser = (supportSettings?.telegramUsername || 'afrobingo_support').replace(/^@/, '');
 
   const totalBalance = (Number(mainWallet || 0) + Number(playWallet || 0)).toFixed(2);
 
@@ -186,6 +190,22 @@ export default function Header({
               <Users className="w-4 h-4" />
               <span>Agent Portal</span>
             </button>
+            <a
+              href={`https://t.me/${supportUser}`}
+              onClick={(e) => {
+                setShowMenu(false);
+                if (window.Telegram?.WebApp?.openTelegramLink) {
+                  e.preventDefault();
+                  window.Telegram.WebApp.openTelegramLink(`https://t.me/${supportUser}`);
+                }
+              }}
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center gap-2 px-3 py-2 hover:bg-[#2b1c60] rounded-xl text-xs font-bold text-emerald-400 text-left transition"
+            >
+              <Headphones className="w-4 h-4" />
+              <span>Customer Support</span>
+            </a>
           </div>
         )}
       </div>

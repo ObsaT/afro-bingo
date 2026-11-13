@@ -5,6 +5,7 @@ const path = require('path');
 
 const USERS_FILE = path.join(__dirname, 'data/users.json');
 const BONUS_SETTINGS_FILE = path.join(__dirname, 'data/bonusSettings.json');
+const SUPPORT_SETTINGS_FILE = path.join(__dirname, 'data/supportSettings.json');
 
 class BingoGameEngine {
   constructor(io) {
@@ -26,6 +27,18 @@ class BingoGameEngine {
       },
     };
     this.loadBonusSettings();
+
+    // Support User & Help Desk settings
+    this.supportSettings = {
+      telegramUsername: 'afrobingo_support',
+      phone: '+251911445566',
+      supportGroup: 'https://t.me/afrobingo_support',
+      supportChannel: 'https://t.me/afrobingo_updates',
+      title: 'Afro Bingo Customer Support',
+      availableHours: '24/7 Live Support',
+      notice: 'ያጋጠሞትን ማንኛውንም የክፍያ ወይም የጨዋታ ጥያቄ በቴሌግራም አነጋግሩን። Contact our official support agent for instant assistance with deposits, withdrawals, or gameplay.',
+    };
+    this.loadSupportSettings();
 
     // Persistent player accounts
     this.users = new Map(); // id or telegramId -> user object
@@ -170,6 +183,58 @@ class BingoGameEngine {
       return true;
     } catch (e) {
       console.error('Error saving bonus settings:', e);
+      return false;
+    }
+  }
+
+  loadSupportSettings() {
+    try {
+      if (fs.existsSync(SUPPORT_SETTINGS_FILE)) {
+        const raw = fs.readFileSync(SUPPORT_SETTINGS_FILE, 'utf8');
+        const parsed = JSON.parse(raw);
+        if (parsed) {
+          this.supportSettings = {
+            telegramUsername: String(parsed.telegramUsername || 'afrobingo_support').replace(/^@/, '').trim(),
+            phone: String(parsed.phone || '+251911445566').trim(),
+            supportGroup: String(parsed.supportGroup || 'https://t.me/afrobingo_support').trim(),
+            supportChannel: String(parsed.supportChannel || 'https://t.me/afrobingo_updates').trim(),
+            title: String(parsed.title || 'Afro Bingo Customer Support').trim(),
+            availableHours: String(parsed.availableHours || '24/7 Live Support').trim(),
+            notice: String(parsed.notice || 'ያጋጠሞትን ማንኛውንም የክፍያ ወይም የጨዋታ ጥያቄ በቴሌግራም አነጋግሩን።').trim(),
+          };
+        }
+      } else {
+        this.saveSupportSettings(this.supportSettings);
+      }
+    } catch (e) {
+      console.error('Error loading support settings:', e);
+    }
+  }
+
+  saveSupportSettings(newSettings) {
+    try {
+      if (newSettings && typeof newSettings === 'object') {
+        this.supportSettings = {
+          telegramUsername: String(newSettings.telegramUsername ?? this.supportSettings.telegramUsername).replace(/^@/, '').trim(),
+          phone: String(newSettings.phone ?? this.supportSettings.phone).trim(),
+          supportGroup: String(newSettings.supportGroup ?? this.supportSettings.supportGroup).trim(),
+          supportChannel: String(newSettings.supportChannel ?? this.supportSettings.supportChannel).trim(),
+          title: String(newSettings.title ?? this.supportSettings.title).trim(),
+          availableHours: String(newSettings.availableHours ?? this.supportSettings.availableHours).trim(),
+          notice: String(newSettings.notice ?? this.supportSettings.notice).trim(),
+        };
+      }
+      const dataDir = path.dirname(SUPPORT_SETTINGS_FILE);
+      if (!fs.existsSync(dataDir)) {
+        fs.mkdirSync(dataDir, { recursive: true });
+      }
+      fs.writeFileSync(SUPPORT_SETTINGS_FILE, JSON.stringify(this.supportSettings, null, 2), 'utf8');
+      if (this.io) {
+        this.io.emit('support_settings_updated', this.supportSettings);
+      }
+      return true;
+    } catch (e) {
+      console.error('Error saving support settings:', e);
       return false;
     }
   }
@@ -764,6 +829,7 @@ class BingoGameEngine {
       voiceLanguage: this.voiceLanguage,
       voiceGender: this.voiceGender,
       bonusSettings: this.bonusSettings,
+      supportSettings: this.supportSettings,
       user: user
         ? {
             id: user.id,

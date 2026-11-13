@@ -13,6 +13,7 @@ import BankWithdrawalModal from './deposit/BankWithdrawalModal';
 export default function WalletModal({
   user,
   bonusSettings,
+  supportSettings,
   onDeposit,
   onTransfer,
   onWithdraw,
@@ -23,6 +24,8 @@ export default function WalletModal({
   const [direction, setDirection] = useState('main_to_play');
   const [feedback, setFeedback] = useState(null);
   const [copied, setCopied] = useState(false);
+
+  const supportUser = (supportSettings?.telegramUsername || 'afrobingo_support').replace(/^@/, '');
 
   const inviteLink = `https://t.me/afrima_bingo_bot?start=ref_${user?.id || ''}`;
   const inviterPlay = bonusSettings?.invitation?.inviterPlayAmount ?? 20;
@@ -335,6 +338,29 @@ export default function WalletModal({
             </div>
           </div>
         )}
+      </div>
+
+      {/* Support Banner Footer */}
+      <div className="bg-[#110926] border-t border-[#25184a] px-4 py-2.5 flex items-center justify-between text-xs shrink-0">
+        <div className="flex items-center gap-1.5 text-gray-300">
+          <span className="text-cyan-400">🎧</span>
+          <span className="text-[11px]">Need payment help?</span>
+        </div>
+        <a
+          href={`https://t.me/${supportUser}`}
+          onClick={(e) => {
+            if (window.Telegram?.WebApp?.openTelegramLink) {
+              e.preventDefault();
+              window.Telegram.WebApp.openTelegramLink(`https://t.me/${supportUser}`);
+            }
+          }}
+          target="_blank"
+          rel="noreferrer"
+          className="text-[11px] font-bold text-cyan-400 hover:text-cyan-300 flex items-center gap-1 transition active:scale-95"
+        >
+          <span>Support (@{supportUser})</span>
+          <span>→</span>
+        </a>
       </div>
     </div>
   );

@@ -1602,6 +1602,196 @@ export default function AdminDashboard({ onExit }) {
                     </div>
                   </div>
 
+                  {/* Customer Support User & Help Desk Settings (የደንበኞች ድጋፍ መስጫ ቅንብር) */}
+                  <div className="bg-[#1f164d] p-3.5 rounded-2xl border border-cyan-500/40 flex flex-col gap-3 my-2 shadow-inner">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xl">🎧</span>
+                        <div>
+                          <h4 className="text-xs font-black text-cyan-300 uppercase tracking-wider">
+                            Customer Support User & Help Desk (የደንበኞች ድጋፍ መስጫ ቅንብር)
+                          </h4>
+                          <p className="text-[10px] text-gray-300">
+                            Configure the support user handle, phone hotline, and links displayed to players for instant assistance.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                      {/* Telegram Support Username */}
+                      <div>
+                        <label className="text-[10px] text-gray-300 uppercase font-bold block mb-1">
+                          💬 Support Telegram Username / Handle
+                        </label>
+                        <div className="flex items-center bg-[#251950] border border-[#3c2980] rounded-xl overflow-hidden px-2 py-1.5 focus-within:border-cyan-400">
+                          <span className="text-xs text-gray-400 font-mono mr-1">@</span>
+                          <input
+                            type="text"
+                            placeholder="afrobingo_support"
+                            value={gameSettings.supportSettings?.telegramUsername ?? 'afrobingo_support'}
+                            onChange={(e) =>
+                              setGameSettings({
+                                ...gameSettings,
+                                supportSettings: {
+                                  ...(gameSettings.supportSettings || {}),
+                                  telegramUsername: e.target.value.replace(/^@/, ''),
+                                },
+                              })
+                            }
+                            className="w-full bg-transparent text-xs text-white outline-none font-mono"
+                          />
+                          {gameSettings.supportSettings?.telegramUsername && (
+                            <a
+                              href={`https://t.me/${(gameSettings.supportSettings?.telegramUsername || '').replace(/^@/, '')}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-[10px] px-2 py-0.5 bg-cyan-600/30 text-cyan-300 rounded font-bold hover:bg-cyan-600/50 shrink-0 ml-1"
+                            >
+                              Test
+                            </a>
+                          )}
+                        </div>
+                        <span className="text-[8px] text-gray-400">Direct Telegram chat handle for players requiring assistance</span>
+                      </div>
+
+                      {/* Support Phone / Hotline */}
+                      <div>
+                        <label className="text-[10px] text-gray-300 uppercase font-bold block mb-1">
+                          📞 Support Phone Number / Hotline
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="+251911445566"
+                          value={gameSettings.supportSettings?.phone ?? '+251911445566'}
+                          onChange={(e) =>
+                            setGameSettings({
+                              ...gameSettings,
+                              supportSettings: {
+                                ...(gameSettings.supportSettings || {}),
+                                phone: e.target.value,
+                              },
+                            })
+                          }
+                          className="w-full px-2.5 py-1.5 bg-[#251950] border border-[#3c2980] rounded-xl text-xs text-white font-mono"
+                        />
+                        <span className="text-[8px] text-gray-400">Optional phone contact for direct calls or SMS</span>
+                      </div>
+
+                      {/* Support Officer Title */}
+                      <div>
+                        <label className="text-[10px] text-gray-300 uppercase font-bold block mb-1">
+                          👤 Support Title / Name
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="Afro Bingo Customer Support"
+                          value={gameSettings.supportSettings?.title ?? 'Afro Bingo Customer Support'}
+                          onChange={(e) =>
+                            setGameSettings({
+                              ...gameSettings,
+                              supportSettings: {
+                                ...(gameSettings.supportSettings || {}),
+                                title: e.target.value,
+                              },
+                            })
+                          }
+                          className="w-full px-2.5 py-1.5 bg-[#251950] border border-[#3c2980] rounded-xl text-xs text-white"
+                        />
+                        <span className="text-[8px] text-gray-400">Designation displayed on profile and bot (e.g. 24/7 Official Support)</span>
+                      </div>
+
+                      {/* Availability Hours */}
+                      <div>
+                        <label className="text-[10px] text-gray-300 uppercase font-bold block mb-1">
+                          ⏰ Operating Hours
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="24/7 Live Support"
+                          value={gameSettings.supportSettings?.availableHours ?? '24/7 Live Support'}
+                          onChange={(e) =>
+                            setGameSettings({
+                              ...gameSettings,
+                              supportSettings: {
+                                ...(gameSettings.supportSettings || {}),
+                                availableHours: e.target.value,
+                              },
+                            })
+                          }
+                          className="w-full px-2.5 py-1.5 bg-[#251950] border border-[#3c2980] rounded-xl text-xs text-white"
+                        />
+                        <span className="text-[8px] text-gray-400">E.g., 24/7 Live Support or 8:00 AM - 12:00 PM</span>
+                      </div>
+
+                      {/* Support Group URL */}
+                      <div>
+                        <label className="text-[10px] text-gray-300 uppercase font-bold block mb-1">
+                          👥 Telegram Support Group URL
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="https://t.me/afrobingo_support"
+                          value={gameSettings.supportSettings?.supportGroup ?? 'https://t.me/afrobingo_support'}
+                          onChange={(e) =>
+                            setGameSettings({
+                              ...gameSettings,
+                              supportSettings: {
+                                ...(gameSettings.supportSettings || {}),
+                                supportGroup: e.target.value,
+                              },
+                            })
+                          }
+                          className="w-full px-2.5 py-1.5 bg-[#251950] border border-[#3c2980] rounded-xl text-xs text-white font-mono"
+                        />
+                      </div>
+
+                      {/* Support Channel URL */}
+                      <div>
+                        <label className="text-[10px] text-gray-300 uppercase font-bold block mb-1">
+                          📢 Official Channel / Updates URL
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="https://t.me/afrobingo_updates"
+                          value={gameSettings.supportSettings?.supportChannel ?? 'https://t.me/afrobingo_updates'}
+                          onChange={(e) =>
+                            setGameSettings({
+                              ...gameSettings,
+                              supportSettings: {
+                                ...(gameSettings.supportSettings || {}),
+                                supportChannel: e.target.value,
+                              },
+                            })
+                          }
+                          className="w-full px-2.5 py-1.5 bg-[#251950] border border-[#3c2980] rounded-xl text-xs text-white font-mono"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Notice Message */}
+                    <div>
+                      <label className="text-[10px] text-gray-300 uppercase font-bold block mb-1">
+                        📝 Support Help Note (English / አማርኛ)
+                      </label>
+                      <textarea
+                        rows="2"
+                        value={gameSettings.supportSettings?.notice ?? ''}
+                        onChange={(e) =>
+                          setGameSettings({
+                            ...gameSettings,
+                            supportSettings: {
+                              ...(gameSettings.supportSettings || {}),
+                              notice: e.target.value,
+                            },
+                          })
+                        }
+                        placeholder="ያጋጠሞትን ማንኛውንም የክፍያ ወይም የጨዋታ ጥያቄ በቴሌግራም አነጋግሩን።"
+                        className="w-full px-2.5 py-1.5 bg-[#251950] border border-[#3c2980] rounded-xl text-xs text-white resize-none"
+                      />
+                    </div>
+                  </div>
+
                   <button
                     type="submit"
                     className="w-full py-2.5 bg-[#f05a28] hover:bg-[#ff6838] text-white text-xs font-bold rounded-xl shadow-lg transition active:scale-95 mt-2"

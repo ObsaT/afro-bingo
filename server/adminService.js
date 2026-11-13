@@ -828,6 +828,9 @@ class AdminService {
     if (settings.bonusSettings !== undefined) {
       this.gameEngine.saveBonusSettings(settings.bonusSettings);
     }
+    if (settings.supportSettings !== undefined) {
+      this.gameEngine.saveSupportSettings(settings.supportSettings);
+    }
     return {
       success: true,
       stake: this.gameEngine.stake,
@@ -840,6 +843,7 @@ class AdminService {
       voiceLanguage: this.gameEngine.voiceLanguage,
       voiceGender: this.gameEngine.voiceGender,
       bonusSettings: this.gameEngine.bonusSettings,
+      supportSettings: this.gameEngine.supportSettings,
     };
   }
 

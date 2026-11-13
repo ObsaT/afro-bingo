@@ -1,9 +1,33 @@
 import React, { useState } from 'react';
-import { User, Shield, HelpCircle, Globe, Share2, Copy, Check, Send, Wallet, Plus } from 'lucide-react';
+import {
+  User,
+  Shield,
+  HelpCircle,
+  Globe,
+  Share2,
+  Copy,
+  Check,
+  Send,
+  Wallet,
+  Plus,
+  Headphones,
+  Phone,
+  Users,
+} from 'lucide-react';
 
-export default function ProfileModal({ user, onOpenAdmin, onOpenAgent, onOpenDeposit }) {
+export default function ProfileModal({ user, supportSettings, onOpenAdmin, onOpenAgent, onOpenDeposit }) {
   const [copied, setCopied] = useState(false);
   const [lang, setLang] = useState('en'); // 'en' | 'am'
+
+  const support = supportSettings || {
+    telegramUsername: 'afrobingo_support',
+    phone: '+251911445566',
+    supportGroup: 'https://t.me/afrobingo_support',
+    title: 'Afro Bingo Customer Support',
+    availableHours: '24/7 Live Support',
+    notice: 'ያጋጠሞትን ማንኛውንም የክፍያ ወይም የጨዋታ ጥያቄ በቴሌግራም አነጋግሩን። (Contact our official support agent for instant assistance).',
+  };
+  const supportUser = (support.telegramUsername || 'afrobingo_support').replace(/^@/, '');
 
   const referralLink = `https://t.me/afrima_bingo_bot?start=ref_${user?.id || '1001'}`;
 
@@ -162,6 +186,80 @@ export default function ProfileModal({ user, onOpenAdmin, onOpenAgent, onOpenDep
           <Send className="w-3.5 h-3.5" />
           <span>Share Link on Telegram (በቴሌግራም አጋራ)</span>
         </button>
+      </div>
+
+      {/* 24/7 Official Customer Support Card */}
+      <div className="bg-gradient-to-br from-[#17254d] to-[#12193b] p-4 rounded-2xl border border-cyan-400/40 flex flex-col gap-3 shadow-xl">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="w-10 h-10 rounded-xl bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center text-cyan-300 shadow-inner">
+              <Headphones className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="text-xs font-black text-white flex items-center gap-1.5">
+                <span>{support?.title || 'Customer Support'}</span>
+                <span className="text-[9px] bg-green-500/20 text-green-400 font-bold px-1.5 py-0.5 rounded-full border border-green-500/30">
+                  {support?.availableHours || '24/7'}
+                </span>
+              </div>
+              <div className="text-[11px] text-cyan-300 font-mono font-bold">
+                @{supportUser}
+              </div>
+            </div>
+          </div>
+
+          <a
+            href={`https://t.me/${supportUser}`}
+            onClick={(e) => {
+              if (window.Telegram?.WebApp?.openTelegramLink) {
+                e.preventDefault();
+                window.Telegram.WebApp.openTelegramLink(`https://t.me/${supportUser}`);
+              }
+            }}
+            target="_blank"
+            rel="noreferrer"
+            className="px-3.5 py-1.5 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white text-xs font-black rounded-xl shadow-md transition active:scale-95 flex items-center gap-1.5"
+          >
+            <Send className="w-3.5 h-3.5" />
+            <span>Chat</span>
+          </a>
+        </div>
+
+        {support?.notice && (
+          <p className="text-[11px] text-gray-300 leading-relaxed bg-[#0d142b]/80 p-2.5 rounded-xl border border-cyan-900/50">
+            {support.notice}
+          </p>
+        )}
+
+        <div className="flex items-center gap-2 pt-0.5">
+          {support?.phone && (
+            <a
+              href={`tel:${support.phone}`}
+              className="flex-1 py-1.5 px-2 bg-[#1b2649] hover:bg-[#253566] rounded-xl text-center text-[11px] font-bold text-gray-200 border border-cyan-500/30 transition flex items-center justify-center gap-1.5"
+            >
+              <Phone className="w-3.5 h-3.5 text-cyan-400" />
+              <span>{support.phone}</span>
+            </a>
+          )}
+
+          {support?.supportGroup && (
+            <a
+              href={support.supportGroup}
+              onClick={(e) => {
+                if (window.Telegram?.WebApp?.openTelegramLink) {
+                  e.preventDefault();
+                  window.Telegram.WebApp.openTelegramLink(support.supportGroup);
+                }
+              }}
+              target="_blank"
+              rel="noreferrer"
+              className="flex-1 py-1.5 px-2 bg-[#1b2649] hover:bg-[#253566] rounded-xl text-center text-[11px] font-bold text-gray-200 border border-cyan-500/30 transition flex items-center justify-center gap-1.5"
+            >
+              <Users className="w-3.5 h-3.5 text-cyan-400" />
+              <span>Group</span>
+            </a>
+          )}
+        </div>
       </div>
 
       {/* Agent Portal Access */}
