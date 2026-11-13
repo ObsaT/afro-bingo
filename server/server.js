@@ -27,7 +27,7 @@ app.use(cors());
 app.use(express.json());
 
 const PORT = process.env.PORT || 4000;
-const MINI_APP_URL = process.env.MINI_APP_URL || `http://localhost:${PORT}`;
+const MINI_APP_URL = process.env.MINI_APP_URL || 'https://afro-bingo-30fz.onrender.com';
 
 // Initialize Game Engine & Admin & Bank Services
 const gameEngine = new BingoGameEngine(io);
@@ -35,7 +35,7 @@ const adminService = new AdminService(gameEngine);
 const bankService = new BankService(adminService);
 
 // Telegram Bot initialization
-const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
+const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '9125335414:AAF5DPadg3Bi25rSHi01sEnjXB20Mb_VAQ8';
 const { bot, notifyAgentOnDeposit } = setupTelegramBot(BOT_TOKEN, MINI_APP_URL, adminService, bankService, io, gameEngine);
 
 // --- REST Endpoints ---
