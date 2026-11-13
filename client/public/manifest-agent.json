@@ -1,0 +1,22 @@
+{
+  "short_name": "Afro Agent",
+  "name": "Afro Bingo Agent Cashier",
+  "description": "Official cashier and player top-up application for Afro Bingo Agents.",
+  "icons": [
+    {
+      "src": "/pwa-192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "/pwa-512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "/agent",
+  "background_color": "#120c24",
+  "theme_color": "#130d29",
+  "display": "standalone",
+  "orientation": "portrait"
+}

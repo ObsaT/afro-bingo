@@ -12,14 +12,17 @@ import BottomNav from './components/BottomNav';
 import AdminDashboard from './components/admin/AdminDashboard';
 import AgentPortal from './components/agent/AgentPortal';
 import InstallAppModal from './components/InstallAppModal';
+import ManagerSelectorScreen from './components/ManagerSelectorScreen';
 import { unlockAudio } from './utils/audio';
 
 export default function App() {
   const isAdminUrl = window.location.pathname === '/admin' || window.location.search.includes('admin=true');
   const isAgentUrl = window.location.pathname === '/agent' || window.location.search.includes('agent=true');
+  const isManagerUrl = window.location.pathname === '/manager' || window.location.pathname === '/app';
 
   const [showAdmin, setShowAdmin] = useState(isAdminUrl);
   const [showAgent, setShowAgent] = useState(isAgentUrl);
+  const [inPlayerMode, setInPlayerMode] = useState(false);
 
   // Check if opened in standalone app mode vs browser
   const isStandalone =
@@ -389,6 +392,17 @@ export default function App() {
         )}
         <AgentPortal onExit={() => setShowAgent(false)} />
       </>
+    );
+  }
+
+  // If running in Standalone Installed App mode (or /manager URL), dedicate the app to Admin & Agent!
+  if ((isStandalone || isManagerUrl) && !inPlayerMode && !showAdmin && !showAgent) {
+    return (
+      <ManagerSelectorScreen
+        onSelectAdmin={() => setShowAdmin(true)}
+        onSelectAgent={() => setShowAgent(true)}
+        onOpenPlayerGame={() => setInPlayerMode(true)}
+      />
     );
   }
 
