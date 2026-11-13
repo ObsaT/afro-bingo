@@ -572,7 +572,7 @@ export default function AdminDashboard({ onExit }) {
           <form onSubmit={handleLogin} className="w-full flex flex-col gap-3">
             <input
               type="password"
-              placeholder="Enter Admin PIN (default: admin123)"
+              placeholder="Enter Admin PIN"
               value={pin}
               onChange={(e) => setPin(e.target.value)}
               className="w-full px-4 py-3 bg-[#24194d] border border-[#3c2980] rounded-xl text-sm text-white placeholder-gray-500 focus:outline-none focus:border-yellow-400"

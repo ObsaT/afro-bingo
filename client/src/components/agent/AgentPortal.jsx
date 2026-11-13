@@ -19,8 +19,8 @@ import {
 } from 'lucide-react';
 
 export default function AgentPortal({ onExit }) {
-  const [phone, setPhone] = useState(localStorage.getItem('afro_agent_phone') || '0911445566');
-  const [pin, setPin] = useState(localStorage.getItem('afro_agent_pin') || '1234');
+  const [phone, setPhone] = useState(localStorage.getItem('afro_agent_phone') || '');
+  const [pin, setPin] = useState(localStorage.getItem('afro_agent_pin') || '');
   const [agent, setAgent] = useState(null);
   const [token, setToken] = useState(localStorage.getItem('afro_agent_token') || '');
   const [loginError, setLoginError] = useState('');
@@ -83,7 +83,11 @@ export default function AgentPortal({ onExit }) {
   const handleLogout = () => {
     setToken('');
     setAgent(null);
+    setPhone('');
+    setPin('');
     localStorage.removeItem('afro_agent_token');
+    localStorage.removeItem('afro_agent_phone');
+    localStorage.removeItem('afro_agent_pin');
   };
 
   // Fetch Agent Dashboard
@@ -339,7 +343,7 @@ export default function AgentPortal({ onExit }) {
               </label>
               <input
                 type="text"
-                placeholder="e.g. 0911445566"
+                placeholder="Enter Phone Number"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 className="w-full px-4 py-2.5 bg-[#251950] border border-[#3c2980] rounded-xl text-sm text-white focus:outline-none focus:border-cyan-400"
@@ -352,7 +356,7 @@ export default function AgentPortal({ onExit }) {
               </label>
               <input
                 type="password"
-                placeholder="PIN (Default: 1234)"
+                placeholder="Enter Passcode / PIN"
                 value={pin}
                 onChange={(e) => setPin(e.target.value)}
                 className="w-full px-4 py-2.5 bg-[#251950] border border-[#3c2980] rounded-xl text-sm text-white focus:outline-none focus:border-cyan-400"
@@ -377,15 +381,6 @@ export default function AgentPortal({ onExit }) {
               Back to Game
             </button>
           </form>
-
-          {/* Quick Demo Agent Accounts */}
-          <div className="w-full mt-4 pt-3 border-t border-[#2c1d59] text-[11px] text-gray-400">
-            <span className="font-semibold block mb-1">Demo Agent Credentials:</span>
-            <div className="flex flex-col gap-1 text-[10px] text-gray-300">
-              <div>• Bole Agent: <span className="font-mono text-cyan-300">0911445566</span> (PIN: 1234)</div>
-              <div>• Piazza Agent: <span className="font-mono text-cyan-300">0922556677</span> (PIN: 1234)</div>
-            </div>
-          </div>
         </div>
       </div>
     );
