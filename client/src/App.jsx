@@ -35,7 +35,7 @@ export default function App() {
     typeof sessionStorage !== 'undefined' && sessionStorage.getItem('dismiss_install_prompt') === 'true'
   );
 
-  const shouldShowInstallModal = ((showAdmin || showAgent) || isInstallParam) && !isStandalone && !hasPromptedInstall;
+  const shouldShowInstallModal = isInstallParam && !isStandalone && !hasPromptedInstall;
   const [activeTab, setActiveTab] = useState('game');
   const [connected, setConnected] = useState(false);
   const [user, setUser] = useState(null);
@@ -382,7 +382,12 @@ export default function App() {
             }}
           />
         )}
-        <AdminDashboard onExit={() => setShowAdmin(false)} />
+        <AdminDashboard
+          onExit={() => {
+            window.history.pushState(null, '', '/manager');
+            setShowAdmin(false);
+          }}
+        />
       </>
     );
   }
@@ -399,7 +404,12 @@ export default function App() {
             }}
           />
         )}
-        <AgentPortal onExit={() => setShowAgent(false)} />
+        <AgentPortal
+          onExit={() => {
+            window.history.pushState(null, '', '/manager');
+            setShowAgent(false);
+          }}
+        />
       </>
     );
   }
@@ -408,9 +418,18 @@ export default function App() {
   if ((isStandalone || isManagerUrl) && !inPlayerMode && !showAdmin && !showAgent) {
     return (
       <ManagerSelectorScreen
-        onSelectAdmin={() => setShowAdmin(true)}
-        onSelectAgent={() => setShowAgent(true)}
-        onOpenPlayerGame={() => setInPlayerMode(true)}
+        onSelectAdmin={() => {
+          window.history.pushState(null, '', '/admin');
+          setShowAdmin(true);
+        }}
+        onSelectAgent={() => {
+          window.history.pushState(null, '', '/agent');
+          setShowAgent(true);
+        }}
+        onOpenPlayerGame={() => {
+          window.history.pushState(null, '', '/');
+          setInPlayerMode(true);
+        }}
       />
     );
   }

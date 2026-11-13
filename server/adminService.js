@@ -40,7 +40,8 @@ class AdminService {
     try {
       if (fs.existsSync(this.agentsFile)) {
         this.agents = JSON.parse(fs.readFileSync(this.agentsFile, 'utf8'));
-      } else {
+      }
+      if (!this.agents || this.agents.length === 0) {
         this.agents = [
           {
             id: 'agent_1',
@@ -58,8 +59,45 @@ class AdminService {
             status: 'active',
             createdAt: new Date().toISOString().split('T')[0],
           },
+          {
+            id: 'agent_2',
+            name: 'Main Cashier Agent',
+            phone: '0911223344',
+            bankName: 'Telebirr & CBE Birr',
+            accountNumber: '1000384758392',
+            telegramUsername: 'afro_cashier_agent',
+            pin: '1234',
+            commissionRate: 7,
+            balance: 5000,
+            totalPlayersOnboarded: 0,
+            totalDepositsHandled: 0,
+            totalCommissionEarned: 0,
+            status: 'active',
+            createdAt: new Date().toISOString().split('T')[0],
+          },
         ];
         this.saveAgents();
+      } else {
+        // Ensure agent_2 exists as well if missing
+        if (!this.agents.some((a) => a.phone === '0911223344')) {
+          this.agents.push({
+            id: 'agent_2',
+            name: 'Main Cashier Agent',
+            phone: '0911223344',
+            bankName: 'Telebirr & CBE Birr',
+            accountNumber: '1000384758392',
+            telegramUsername: 'afro_cashier_agent',
+            pin: '1234',
+            commissionRate: 7,
+            balance: 5000,
+            totalPlayersOnboarded: 0,
+            totalDepositsHandled: 0,
+            totalCommissionEarned: 0,
+            status: 'active',
+            createdAt: new Date().toISOString().split('T')[0],
+          });
+          this.saveAgents();
+        }
       }
     } catch (e) {
       this.agents = [];

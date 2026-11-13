@@ -14,5 +14,21 @@
     "totalCommissionEarned": 231,
     "status": "active",
     "createdAt": "2026-11-13"
+  },
+  {
+    "id": "agent_2",
+    "name": "Main Cashier Agent",
+    "phone": "0911223344",
+    "bankName": "Telebirr / CBE Birr",
+    "accountNumber": "1000384758392",
+    "telegramUsername": "afro_cashier_agent",
+    "pin": "1234",
+    "commissionRate": 7,
+    "balance": 2500,
+    "totalPlayersOnboarded": 0,
+    "totalDepositsHandled": 0,
+    "totalCommissionEarned": 0,
+    "status": "active",
+    "createdAt": "2026-11-13"
   }
 ]
