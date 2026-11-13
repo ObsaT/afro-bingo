@@ -600,30 +600,52 @@ export default function AdminDashboard({ onExit }) {
   // --- Admin Dashboard Main View ---
   return (
     <div className="flex flex-col h-screen w-screen max-w-2xl mx-auto bg-[#100921] text-white overflow-hidden shadow-2xl select-none">
-      {/* Admin Header */}
-      <header className="bg-[#181038] border-b border-[#2d1e5e] px-4 py-2.5 flex items-center justify-between sticky top-0 z-30">
-        <div className="flex items-center gap-2">
-          <span className="text-lg">👑</span>
-          <div>
-            <h1 className="text-sm font-extrabold text-white tracking-wide flex items-center gap-2">
-              <span>Afro Bingo Admin</span>
-              <span className="text-[10px] bg-green-500/20 text-green-400 font-bold px-2 py-0.5 rounded-full border border-green-500/30">
-                LIVE
-              </span>
-            </h1>
-            <div className="text-[10px] text-gray-400 flex items-center gap-2">
-              <span>Game #{stats?.gameId || '--'}</span>
-              <span>•</span>
-              <span className="text-yellow-400 font-bold">{stats?.gameState || 'ACTIVE'}</span>
+      {/* Admin Header - Fully Responsive for Mobile & APK */}
+      <header className="bg-[#181038] border-b border-[#2d1e5e] px-3 py-2 flex flex-col gap-2 sticky top-0 z-30 shadow-md">
+        {/* Top Row: Title, Status, and ALWAYS VISIBLE LOGOUT */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-base sm:text-lg">👑</span>
+            <div>
+              <h1 className="text-xs sm:text-sm font-extrabold text-white tracking-wide flex items-center gap-1.5">
+                <span>Afro Bingo Admin</span>
+                <span className="text-[9px] bg-green-500/20 text-green-400 font-bold px-1.5 py-0.2 rounded-full border border-green-500/30">
+                  LIVE
+                </span>
+              </h1>
+              <div className="text-[10px] text-gray-400 flex items-center gap-1.5">
+                <span>Game #{stats?.gameId || '--'}</span>
+                <span>•</span>
+                <span className="text-yellow-400 font-bold">{stats?.gameState || 'ACTIVE'}</span>
+              </div>
             </div>
+          </div>
+
+          {/* Top Right: Logout (ALWAYS visible & prominent) + Exit/Game */}
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              onClick={onExit}
+              className="px-2 py-1 bg-[#251950] hover:bg-[#342470] text-gray-300 text-[10px] sm:text-[11px] font-bold rounded-lg border border-[#3b287d] transition"
+            >
+              Game
+            </button>
+            <button
+              onClick={handleLogout}
+              title="Logout from Admin"
+              className="flex items-center gap-1 px-2.5 py-1 bg-red-600 hover:bg-red-500 text-white text-[10px] sm:text-[11px] font-black rounded-lg shadow-sm transition active:scale-95 shrink-0"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span>Logout</span>
+            </button>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          {/* Quick Simulation Indicator/Toggle */}
+        {/* Action Row: Horizontal Scrollable on Mobile so all buttons are accessible without overflowing */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 no-scrollbar scroll-smooth">
+          {/* Quick Simulation Toggle */}
           <button
             onClick={handleToggleSimulation}
-            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-black border transition ${
+            className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold border transition shrink-0 ${
               stats?.enableSimulation
                 ? 'bg-purple-600/30 text-purple-300 border-purple-500/50'
                 : 'bg-gray-700/40 text-gray-400 border-gray-600/40'
@@ -634,52 +656,40 @@ export default function AdminDashboard({ onExit }) {
             <span>Bots: {stats?.enableSimulation ? 'ON' : 'OFF'}</span>
           </button>
 
+          {/* Next Round */}
           <button
             onClick={handleForceNext}
             title="Force Next Round"
-            className="flex items-center gap-1 px-2.5 py-1.5 bg-[#f05a28] hover:bg-[#ff6838] text-white text-[11px] font-bold rounded-lg shadow transition active:scale-95"
+            className="flex items-center gap-1 px-2 py-1 bg-[#f05a28] hover:bg-[#ff6838] text-white text-[10px] font-bold rounded-lg shadow transition active:scale-95 shrink-0"
           >
-            <RotateCcw className="w-3.5 h-3.5" />
+            <RotateCcw className="w-3 h-3" />
             <span>Next Round</span>
           </button>
 
+          {/* Clear Test Data */}
           <button
             onClick={handleClearTestData}
-            title="Clear all test data without touching Admin, Agents, and Payment Methods"
-            className="flex items-center gap-1 px-2.5 py-1.5 bg-red-600/30 hover:bg-red-600/50 text-red-200 border border-red-500/40 text-[11px] font-bold rounded-lg transition active:scale-95"
+            title="Clear all test data"
+            className="flex items-center gap-1 px-2 py-1 bg-red-600/30 hover:bg-red-600/50 text-red-200 border border-red-500/40 text-[10px] font-bold rounded-lg transition active:scale-95 shrink-0"
           >
-            <Trash2 className="w-3.5 h-3.5 text-red-400" />
-            <span className="hidden sm:inline">Clear Test Data</span>
+            <Trash2 className="w-3 h-3 text-red-400" />
+            <span>Clear Data</span>
           </button>
 
+          {/* Install APK */}
           <button
             onClick={() => {
               if (window.installPrompt) {
                 window.installPrompt.prompt();
               } else {
-                alert('📲 To install Afro Bingo Admin as an APK on your Android device:\n\n1. Open the Chrome menu (⋮)\n2. Tap "Install app" or "Add to Home screen"\n3. Tap "Install" to add the standalone App to your phone!');
+                alert('📲 To install Afro Bingo Admin as an APK:\n\n1. Open Chrome menu (⋮)\n2. Tap "Install app" or "Add to Home screen"\n3. Tap "Install" to add the standalone App to your phone!');
               }
             }}
-            title="Install Standalone APK / App to Home Screen"
-            className="flex items-center gap-1 px-2.5 py-1.5 bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-300 border border-yellow-500/40 text-[11px] font-bold rounded-lg transition active:scale-95"
+            title="Install Standalone APK to Home Screen"
+            className="flex items-center gap-1 px-2 py-1 bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-300 border border-yellow-500/40 text-[10px] font-bold rounded-lg transition active:scale-95 shrink-0"
           >
             <span>📲</span>
-            <span className="hidden sm:inline">Install APK</span>
-          </button>
-
-          <button
-            onClick={onExit}
-            className="px-2.5 py-1.5 bg-[#251950] hover:bg-[#342470] text-gray-300 text-[11px] font-bold rounded-lg border border-[#3b287d] transition"
-          >
-            Play Game
-          </button>
-
-          <button
-            onClick={handleLogout}
-            title="Logout"
-            className="p-1.5 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg border border-red-500/30 transition"
-          >
-            <LogOut className="w-4 h-4" />
+            <span>Install APK</span>
           </button>
         </div>
       </header>

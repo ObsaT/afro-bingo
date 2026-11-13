@@ -394,54 +394,59 @@ export default function AgentPortal({ onExit }) {
   // --- LOGGED IN AGENT DASHBOARD ---
   return (
     <div className="flex flex-col h-screen w-screen max-w-lg mx-auto bg-[#100921] text-white overflow-hidden shadow-2xl select-none">
-      {/* Header */}
-      <header className="bg-[#181038] border-b border-[#2d1e5e] px-4 py-3 flex items-center justify-between sticky top-0 z-30">
-        <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-xl bg-cyan-600 flex items-center justify-center font-black text-white text-base shadow">
+      {/* Header - Fully Responsive for Mobile & APK */}
+      <header className="bg-[#181038] border-b border-[#2d1e5e] px-3 py-2 flex items-center justify-between sticky top-0 z-30">
+        <div className="flex items-center gap-2 min-w-0 pr-1">
+          <div className="w-8 h-8 rounded-xl bg-cyan-600 flex items-center justify-center font-black text-white text-sm shadow shrink-0">
             🤝
           </div>
-          <div>
-            <h1 className="text-xs font-black text-white tracking-wide">{agent.name}</h1>
-            <div className="text-[10px] text-gray-400">
-              📱 {agent.phone} | <span className="text-cyan-400">@{agent.telegramUsername}</span>
+          <div className="min-w-0">
+            <h1 className="text-xs font-black text-white tracking-wide truncate">{agent.name}</h1>
+            <div className="text-[10px] text-gray-400 truncate">
+              📱 {agent.phone} • <span className="text-cyan-400">@{agent.telegramUsername}</span>
             </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        {/* Right buttons: LOGOUT ALWAYS VISIBLE */}
+        <div className="flex items-center gap-1.5 shrink-0">
           <button
             onClick={() => {
               if (window.installPrompt) {
                 window.installPrompt.prompt();
               } else {
-                alert('📲 To install Afro Bingo Agent as an APK on your Android device:\n\n1. Open the Chrome menu (⋮)\n2. Tap "Install app" or "Add to Home screen"\n3. Tap "Install" to add the standalone App to your phone!');
+                alert('📲 To install Afro Bingo Agent as an APK:\n\n1. Open Chrome menu (⋮)\n2. Tap "Install app" or "Add to Home screen"\n3. Tap "Install"!');
               }
             }}
-            title="Install Standalone APK / App to Home Screen"
-            className="flex items-center gap-1 px-2 py-1 bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-300 border border-yellow-500/40 text-[10px] font-bold rounded-lg transition active:scale-95"
+            title="Install APK"
+            className="p-1 sm:px-2 bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-300 border border-yellow-500/40 text-[10px] font-bold rounded-lg transition active:scale-95 shrink-0"
           >
             <span>📲</span>
-            <span className="hidden sm:inline">Install APK</span>
+            <span className="hidden sm:inline ml-0.5">APK</span>
           </button>
+
           <button
             onClick={() => fetchDashboard()}
-            className="p-1.5 bg-[#251950] hover:bg-[#342470] text-gray-300 rounded-lg border border-[#3b287d] transition"
+            className="p-1.5 bg-[#251950] hover:bg-[#342470] text-gray-300 rounded-lg border border-[#3b287d] transition shrink-0"
             title="Refresh"
           >
             <RefreshCw className="w-3.5 h-3.5" />
           </button>
+
           <button
             onClick={onExit}
-            className="px-2.5 py-1 bg-[#251950] hover:bg-[#342470] text-gray-300 text-[11px] font-bold rounded-lg border border-[#3b287d] transition"
+            className="px-2 py-1 bg-[#251950] hover:bg-[#342470] text-gray-300 text-[10px] font-bold rounded-lg border border-[#3b287d] transition shrink-0"
           >
             Game
           </button>
+
           <button
             onClick={handleLogout}
-            className="p-1.5 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg border border-red-500/30 transition"
-            title="Logout"
+            className="flex items-center gap-1 px-2.5 py-1 bg-red-600 hover:bg-red-500 text-white text-[10px] font-bold rounded-lg shadow-sm transition active:scale-95 shrink-0"
+            title="Logout from Agent Portal"
           >
             <LogOut className="w-3.5 h-3.5" />
+            <span>Logout</span>
           </button>
         </div>
       </header>
