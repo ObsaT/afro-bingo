@@ -4,6 +4,32 @@ An authentic, production-grade Ethiopian Multiplayer Bingo Game built for **Tele
 
 ---
 
+## 🚀 Deploying to Render
+
+This repository includes a `render.yaml` blueprint and is 100% pre-configured for one-click deployment on [Render](https://render.com).
+
+### Step-by-Step Instructions:
+
+1. **Log in to [Render Dashboard](https://dashboard.render.com)**.
+2. Click **New +** ➔ **Web Service**.
+3. Connect your GitHub account and select **`ObsaT/afro-bingo`**.
+4. Set the following build and start settings:
+   - **Name:** `afro-bingo` (or any custom name)
+   - **Language / Environment:** `Node`
+   - **Branch:** `main`
+   - **Build Command:** `npm install && npm run build`
+   - **Start Command:** `npm start`
+   - **Instance Type:** `Free`
+5. Add the **Environment Variables** in the Render settings:
+   - `TELEGRAM_BOT_TOKEN` = *(Your bot token from @BotFather)*
+   - `MINI_APP_URL` = `https://<your-service-name>.onrender.com` *(e.g. `https://afro-bingo.onrender.com`)*
+   - `ADMIN_PIN` = `admin123` *(or your custom admin PIN)*
+   - `ADMIN_TOKEN` = `afro_admin_secret_token_2026`
+6. Click **Create Web Service**!
+   Render will install dependencies, build the frontend Vite app into `client/dist`, launch the Node server, start the Telegram bot, and configure Telegram's **🎮 Play Bingo** menu button automatically to your Render URL.
+
+---
+
 ## 📸 Features & Faithful UI Implementation
 
 - **🎯 Exact UI Replication**:
