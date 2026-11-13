@@ -167,29 +167,9 @@ export default function Header({
           </div>
         )}
 
-        {/* Dropdown Menu for Admin & Agent */}
+        {/* Dropdown Menu (Support for players) */}
         {showMenu && (
           <div className="absolute right-3 top-12 bg-[#1e1442] border border-[#3c2980] rounded-2xl shadow-2xl p-1.5 flex flex-col gap-1 z-50 min-w-[160px] animate-fade-in">
-            <button
-              onClick={() => {
-                setShowMenu(false);
-                if (onOpenAdmin) onOpenAdmin();
-              }}
-              className="flex items-center gap-2 px-3 py-2 hover:bg-[#2b1c60] rounded-xl text-xs font-bold text-yellow-400 text-left transition"
-            >
-              <Shield className="w-4 h-4" />
-              <span>Admin Portal</span>
-            </button>
-            <button
-              onClick={() => {
-                setShowMenu(false);
-                if (onOpenAgent) onOpenAgent();
-              }}
-              className="flex items-center gap-2 px-3 py-2 hover:bg-[#2b1c60] rounded-xl text-xs font-bold text-cyan-400 text-left transition"
-            >
-              <Users className="w-4 h-4" />
-              <span>Agent Portal</span>
-            </button>
             <a
               href={`https://t.me/${supportUser}`}
               onClick={(e) => {

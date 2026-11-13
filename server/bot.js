@@ -147,7 +147,6 @@ Tap the button below to launch the game directly inside Telegram! 👇`;
         .webApp('🎮 Play Afro Bingo', miniAppUrl)
         .row()
         .webApp('💳 Deposit (ዲፖዚት)', miniAppUrl)
-        .webApp('👑 Admin', `${miniAppUrl}?admin=true`)
         .row()
         .url('📢 Channel & Updates', supportChannel)
         .url('💬 Support Desk', `https://t.me/${supportUser}`);

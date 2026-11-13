@@ -5,12 +5,12 @@
     "username": "Wopsa",
     "firstName": "Wopsa",
     "mainWallet": 10,
-    "playWallet": 24,
-    "gamesPlayed": 6,
-    "gamesWon": 1,
+    "playWallet": 60,
+    "gamesPlayed": 0,
+    "gamesWon": 0,
     "referralsCount": 0,
     "referralHistory": [],
-    "createdAt": "2026-11-13T12:19:27.377Z"
+    "createdAt": "2026-11-13T12:48:31.348Z"
   },
   {
     "id": "user_2751",
@@ -23,7 +23,7 @@
     "gamesWon": 0,
     "referralsCount": 0,
     "referralHistory": [],
-    "createdAt": "2026-11-13T12:30:53.048Z"
+    "createdAt": "2026-11-13T12:48:49.739Z"
   },
   {
     "id": "user_7472",
@@ -36,7 +36,7 @@
     "gamesWon": 0,
     "referralsCount": 0,
     "referralHistory": [],
-    "createdAt": "2026-11-13T12:33:31.426Z"
+    "createdAt": "2026-11-13T12:48:50.803Z"
   },
   {
     "id": "user_2130",
@@ -49,7 +49,7 @@
     "gamesWon": 0,
     "referralsCount": 0,
     "referralHistory": [],
-    "createdAt": "2026-11-13T12:36:17.987Z"
+    "createdAt": "2026-11-13T12:48:51.251Z"
   },
   {
     "id": "user_4725",
@@ -62,6 +62,19 @@
     "gamesWon": 0,
     "referralsCount": 0,
     "referralHistory": [],
-    "createdAt": "2026-11-13T12:40:51.099Z"
+    "createdAt": "2026-11-13T12:48:53.102Z"
+  },
+  {
+    "id": "435027091",
+    "telegramId": "435027091",
+    "username": "ObsaT123",
+    "firstName": "Obsa",
+    "mainWallet": 10,
+    "playWallet": 60,
+    "gamesPlayed": 0,
+    "gamesWon": 0,
+    "referralsCount": 0,
+    "referralHistory": [],
+    "createdAt": "2026-11-13T12:49:02.632Z"
   }
 ]

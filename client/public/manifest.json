@@ -1,0 +1,22 @@
+{
+  "short_name": "Afro Manager",
+  "name": "Afro Bingo Admin & Agent Management Portal",
+  "description": "Official management and cashier application for Afro Bingo Admins and Agents.",
+  "icons": [
+    {
+      "src": "/pwa-192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "/pwa-512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#120c24",
+  "theme_color": "#130d29",
+  "display": "standalone",
+  "orientation": "portrait"
+}

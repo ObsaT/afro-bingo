@@ -11,15 +11,26 @@ import ProfileModal from './components/ProfileModal';
 import BottomNav from './components/BottomNav';
 import AdminDashboard from './components/admin/AdminDashboard';
 import AgentPortal from './components/agent/AgentPortal';
+import InstallAppModal from './components/InstallAppModal';
 import { unlockAudio } from './utils/audio';
 
 export default function App() {
-  const [showAdmin, setShowAdmin] = useState(
-    window.location.pathname === '/admin' || window.location.search.includes('admin=true')
+  const isAdminUrl = window.location.pathname === '/admin' || window.location.search.includes('admin=true');
+  const isAgentUrl = window.location.pathname === '/agent' || window.location.search.includes('agent=true');
+
+  const [showAdmin, setShowAdmin] = useState(isAdminUrl);
+  const [showAgent, setShowAgent] = useState(isAgentUrl);
+
+  // Check if opened in standalone app mode vs browser
+  const isStandalone =
+    typeof window !== 'undefined' &&
+    (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true);
+
+  const [hasPromptedInstall, setHasPromptedInstall] = useState(
+    typeof sessionStorage !== 'undefined' && sessionStorage.getItem('dismiss_install_prompt') === 'true'
   );
-  const [showAgent, setShowAgent] = useState(
-    window.location.pathname === '/agent' || window.location.search.includes('agent=true')
-  );
+
+  const shouldShowInstallModal = (showAdmin || showAgent) && !isStandalone && !hasPromptedInstall;
   const [activeTab, setActiveTab] = useState('game');
   const [connected, setConnected] = useState(false);
   const [user, setUser] = useState(null);
@@ -348,11 +359,37 @@ export default function App() {
   };
 
   if (showAdmin) {
-    return <AdminDashboard onExit={() => setShowAdmin(false)} />;
+    return (
+      <>
+        {shouldShowInstallModal && (
+          <InstallAppModal
+            portalType="admin"
+            onContinueWeb={() => {
+              sessionStorage.setItem('dismiss_install_prompt', 'true');
+              setHasPromptedInstall(true);
+            }}
+          />
+        )}
+        <AdminDashboard onExit={() => setShowAdmin(false)} />
+      </>
+    );
   }
 
   if (showAgent) {
-    return <AgentPortal onExit={() => setShowAgent(false)} />;
+    return (
+      <>
+        {shouldShowInstallModal && (
+          <InstallAppModal
+            portalType="agent"
+            onContinueWeb={() => {
+              sessionStorage.setItem('dismiss_install_prompt', 'true');
+              setHasPromptedInstall(true);
+            }}
+          />
+        )}
+        <AgentPortal onExit={() => setShowAgent(false)} />
+      </>
+    );
   }
 
   return (

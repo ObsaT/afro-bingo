@@ -653,6 +653,21 @@ export default function AdminDashboard({ onExit }) {
           </button>
 
           <button
+            onClick={() => {
+              if (window.installPrompt) {
+                window.installPrompt.prompt();
+              } else {
+                alert('📲 To install Afro Bingo Admin as an APK on your Android device:\n\n1. Open the Chrome menu (⋮)\n2. Tap "Install app" or "Add to Home screen"\n3. Tap "Install" to add the standalone App to your phone!');
+              }
+            }}
+            title="Install Standalone APK / App to Home Screen"
+            className="flex items-center gap-1 px-2.5 py-1.5 bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-300 border border-yellow-500/40 text-[11px] font-bold rounded-lg transition active:scale-95"
+          >
+            <span>📲</span>
+            <span className="hidden sm:inline">Install APK</span>
+          </button>
+
+          <button
             onClick={onExit}
             className="px-2.5 py-1.5 bg-[#251950] hover:bg-[#342470] text-gray-300 text-[11px] font-bold rounded-lg border border-[#3b287d] transition"
           >

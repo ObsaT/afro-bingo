@@ -262,46 +262,6 @@ export default function ProfileModal({ user, supportSettings, onOpenAdmin, onOpe
         </div>
       </div>
 
-      {/* Agent Portal Access */}
-      <div className="bg-gradient-to-r from-[#17224d] to-[#1c3359] p-4 rounded-2xl border border-cyan-500/30 flex items-center justify-between shadow-lg">
-        <div>
-          <div className="text-xs font-black text-cyan-300 flex items-center gap-1.5">
-            <span>🤝</span>
-            <span>Agent Portal (የወኪል መግቢያ)</span>
-          </div>
-          <div className="text-[10px] text-gray-300 mt-0.5">
-            Check deposits on your account & top up player balances
-          </div>
-        </div>
-
-        <button
-          onClick={onOpenAgent}
-          className="px-3 py-1.5 bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white text-xs font-black rounded-xl shadow-md transition active:scale-95"
-        >
-          Agent Login
-        </button>
-      </div>
-
-      {/* Admin Console Access */}
-      <div className="bg-gradient-to-r from-[#24174d] to-[#361952] p-4 rounded-2xl border border-yellow-500/30 flex items-center justify-between shadow-lg">
-        <div>
-          <div className="text-xs font-black text-yellow-300 flex items-center gap-1.5">
-            <span>👑</span>
-            <span>Admin & Cashier Portal</span>
-          </div>
-          <div className="text-[10px] text-gray-300 mt-0.5">
-            Manage payments, approve cashouts, players & agents
-          </div>
-        </div>
-
-        <button
-          onClick={onOpenAdmin}
-          className="px-3 py-1.5 bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-400 hover:to-orange-400 text-black text-xs font-black rounded-xl shadow-md transition active:scale-95"
-        >
-          Open Admin
-        </button>
-      </div>
-
       {/* Rules & Fair Play */}
       <div className="bg-[#1b123d] p-4 rounded-2xl border border-[#32226b] flex flex-col gap-2">
         <div className="flex items-center gap-1.5">
