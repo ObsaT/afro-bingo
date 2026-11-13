@@ -76,5 +76,44 @@
     "referralsCount": 0,
     "referralHistory": [],
     "createdAt": "2026-11-13T13:20:49.134Z"
+  },
+  {
+    "id": "user_9103",
+    "telegramId": "user_9103",
+    "username": "Player_9103",
+    "firstName": "Player_9103",
+    "mainWallet": 10,
+    "playWallet": 60,
+    "gamesPlayed": 0,
+    "gamesWon": 0,
+    "referralsCount": 0,
+    "referralHistory": [],
+    "createdAt": "2026-11-13T14:22:23.654Z"
+  },
+  {
+    "id": "user_4657",
+    "telegramId": "user_4657",
+    "username": "Player_4657",
+    "firstName": "Player_4657",
+    "mainWallet": 10,
+    "playWallet": 60,
+    "gamesPlayed": 0,
+    "gamesWon": 0,
+    "referralsCount": 0,
+    "referralHistory": [],
+    "createdAt": "2026-11-13T14:22:24.457Z"
+  },
+  {
+    "id": "user_4150",
+    "telegramId": "user_4150",
+    "username": "Player_4150",
+    "firstName": "Player_4150",
+    "mainWallet": 10,
+    "playWallet": 60,
+    "gamesPlayed": 0,
+    "gamesWon": 0,
+    "referralsCount": 0,
+    "referralHistory": [],
+    "createdAt": "2026-11-13T14:22:32.241Z"
   }
 ]

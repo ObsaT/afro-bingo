@@ -40,6 +40,16 @@ const { bot, notifyAgentOnDeposit } = setupTelegramBot(BOT_TOKEN, MINI_APP_URL, 
 
 // --- REST Endpoints ---
 
+// Health & State check for cloud hosting platforms (Render, Koyeb, Docker)
+app.get(['/api/state', '/api/health', '/healthz'], (req, res) => {
+  res.json({
+    status: 'healthy',
+    gameId: gameEngine.gameId,
+    state: gameEngine.state,
+    timestamp: new Date().toISOString(),
+  });
+});
+
 // User Profile / Auth
 app.post('/api/auth/init', (req, res) => {
   const { user, referralCode } = req.body;
