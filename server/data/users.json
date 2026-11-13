@@ -10,46 +10,20 @@
     "gamesWon": 0,
     "referralsCount": 0,
     "referralHistory": [],
-    "createdAt": "2026-11-13T12:48:31.348Z"
+    "createdAt": "2026-11-13T13:19:57.480Z"
   },
   {
-    "id": "user_2751",
-    "telegramId": "user_2751",
-    "username": "Player_2751",
-    "firstName": "Player_2751",
+    "id": "user_4517",
+    "telegramId": "user_4517",
+    "username": "Player_4517",
+    "firstName": "Player_4517",
     "mainWallet": 10,
     "playWallet": 60,
     "gamesPlayed": 0,
     "gamesWon": 0,
     "referralsCount": 0,
     "referralHistory": [],
-    "createdAt": "2026-11-13T12:48:49.739Z"
-  },
-  {
-    "id": "user_7472",
-    "telegramId": "user_7472",
-    "username": "Player_7472",
-    "firstName": "Player_7472",
-    "mainWallet": 10,
-    "playWallet": 60,
-    "gamesPlayed": 0,
-    "gamesWon": 0,
-    "referralsCount": 0,
-    "referralHistory": [],
-    "createdAt": "2026-11-13T12:48:50.803Z"
-  },
-  {
-    "id": "user_2130",
-    "telegramId": "user_2130",
-    "username": "Player_2130",
-    "firstName": "Player_2130",
-    "mainWallet": 10,
-    "playWallet": 60,
-    "gamesPlayed": 0,
-    "gamesWon": 0,
-    "referralsCount": 0,
-    "referralHistory": [],
-    "createdAt": "2026-11-13T12:48:51.251Z"
+    "createdAt": "2026-11-13T13:20:27.961Z"
   },
   {
     "id": "user_4725",
@@ -62,7 +36,33 @@
     "gamesWon": 0,
     "referralsCount": 0,
     "referralHistory": [],
-    "createdAt": "2026-11-13T12:48:53.102Z"
+    "createdAt": "2026-11-13T13:20:44.913Z"
+  },
+  {
+    "id": "user_2751",
+    "telegramId": "user_2751",
+    "username": "Player_2751",
+    "firstName": "Player_2751",
+    "mainWallet": 10,
+    "playWallet": 60,
+    "gamesPlayed": 0,
+    "gamesWon": 0,
+    "referralsCount": 0,
+    "referralHistory": [],
+    "createdAt": "2026-11-13T13:20:46.395Z"
+  },
+  {
+    "id": "user_7472",
+    "telegramId": "user_7472",
+    "username": "Player_7472",
+    "firstName": "Player_7472",
+    "mainWallet": 10,
+    "playWallet": 60,
+    "gamesPlayed": 0,
+    "gamesWon": 0,
+    "referralsCount": 0,
+    "referralHistory": [],
+    "createdAt": "2026-11-13T13:20:46.644Z"
   },
   {
     "id": "435027091",
@@ -75,19 +75,6 @@
     "gamesWon": 0,
     "referralsCount": 0,
     "referralHistory": [],
-    "createdAt": "2026-11-13T12:49:02.632Z"
-  },
-  {
-    "id": "user_4517",
-    "telegramId": "user_4517",
-    "username": "Player_4517",
-    "firstName": "Player_4517",
-    "mainWallet": 10,
-    "playWallet": 54,
-    "gamesPlayed": 3,
-    "gamesWon": 1,
-    "referralsCount": 0,
-    "referralHistory": [],
-    "createdAt": "2026-11-13T12:57:03.436Z"
+    "createdAt": "2026-11-13T13:20:49.134Z"
   }
 ]

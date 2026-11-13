@@ -61,9 +61,16 @@ export default function InstallAppModal({ portalType = 'admin', onContinueWeb })
     }
   };
 
+  const isPlayer = portalType === 'player';
   const isAgent = portalType === 'agent';
-  const title = isAgent ? 'AFRO BINGO AGENT APP' : 'AFRO BINGO ADMIN APP';
-  const subtitle = isAgent
+  const title = isPlayer
+    ? 'AFRO BINGO APP'
+    : isAgent
+    ? 'AFRO BINGO AGENT APP'
+    : 'AFRO BINGO ADMIN APP';
+  const subtitle = isPlayer
+    ? '#1 Ethiopian Multiplayer Bingo Game'
+    : isAgent
     ? 'Dedicated Cashier & Player Top-up App'
     : 'Dedicated Master Management & Cashout Console';
 
@@ -99,18 +106,37 @@ export default function InstallAppModal({ portalType = 'admin', onContinueWeb })
 
         {/* Feature Badges */}
         <div className="w-full flex flex-col gap-2 mb-5 text-left">
-          <div className="flex items-center gap-2.5 text-[11px] text-gray-200 bg-[#1e1444]/60 px-3 py-2 rounded-xl border border-[#372473]/50">
-            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-            <span>Full-screen cashier console without browser URL bars</span>
-          </div>
-          <div className="flex items-center gap-2.5 text-[11px] text-gray-200 bg-[#1e1444]/60 px-3 py-2 rounded-xl border border-[#372473]/50">
-            <ShieldCheck className="w-4 h-4 text-cyan-400 shrink-0" />
-            <span>Isolated secure agent & admin credential storage</span>
-          </div>
-          <div className="flex items-center gap-2.5 text-[11px] text-gray-200 bg-[#1e1444]/60 px-3 py-2 rounded-xl border border-[#372473]/50">
-            <Smartphone className="w-4 h-4 text-yellow-400 shrink-0" />
-            <span>1-Tap launch directly from your Android home screen</span>
-          </div>
+          {isPlayer ? (
+            <>
+              <div className="flex items-center gap-2.5 text-[11px] text-gray-200 bg-[#1e1444]/60 px-3 py-2 rounded-xl border border-[#372473]/50">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span>Full-screen 75-Ball Live Game with instant voice caller</span>
+              </div>
+              <div className="flex items-center gap-2.5 text-[11px] text-gray-200 bg-[#1e1444]/60 px-3 py-2 rounded-xl border border-[#372473]/50">
+                <ShieldCheck className="w-4 h-4 text-cyan-400 shrink-0" />
+                <span>Telebirr & CBE Birr direct deposits and quick cashouts</span>
+              </div>
+              <div className="flex items-center gap-2.5 text-[11px] text-gray-200 bg-[#1e1444]/60 px-3 py-2 rounded-xl border border-[#372473]/50">
+                <Smartphone className="w-4 h-4 text-yellow-400 shrink-0" />
+                <span>1-Tap home screen launcher — play anytime, no chat clutter</span>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="flex items-center gap-2.5 text-[11px] text-gray-200 bg-[#1e1444]/60 px-3 py-2 rounded-xl border border-[#372473]/50">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span>Full-screen cashier console without browser URL bars</span>
+              </div>
+              <div className="flex items-center gap-2.5 text-[11px] text-gray-200 bg-[#1e1444]/60 px-3 py-2 rounded-xl border border-[#372473]/50">
+                <ShieldCheck className="w-4 h-4 text-cyan-400 shrink-0" />
+                <span>Isolated secure agent & admin credential storage</span>
+              </div>
+              <div className="flex items-center gap-2.5 text-[11px] text-gray-200 bg-[#1e1444]/60 px-3 py-2 rounded-xl border border-[#372473]/50">
+                <Smartphone className="w-4 h-4 text-yellow-400 shrink-0" />
+                <span>1-Tap launch directly from your Android home screen</span>
+              </div>
+            </>
+          )}
         </div>
 
         {/* Primary Action: Install APK */}

@@ -1,0 +1,22 @@
+{
+  "short_name": "Afro Bingo",
+  "name": "Afro Bingo - Ethiopian Multiplayer Bingo",
+  "description": "Play Ethiopian live 75-ball multiplayer bingo and win Derash jackpots with Telebirr and CBE.",
+  "icons": [
+    {
+      "src": "/pwa-192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "/pwa-512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "/?player=true",
+  "background_color": "#120c24",
+  "theme_color": "#130d29",
+  "display": "standalone",
+  "orientation": "portrait"
+}

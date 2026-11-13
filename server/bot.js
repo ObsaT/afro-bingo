@@ -142,11 +142,14 @@ Tap the button below to launch the game directly inside Telegram! 👇`;
       const supportUser = (engine?.supportSettings?.telegramUsername || 'afrobingo_support').replace(/^@/, '');
       const supportGroup = engine?.supportSettings?.supportGroup || 'https://t.me/afrobingo_support';
       const supportChannel = engine?.supportSettings?.supportChannel || 'https://t.me/afrobingo_updates';
+      const installUrl = `${miniAppUrl}?install=true`;
 
       const keyboard = new InlineKeyboard()
         .webApp('🎮 Play Afro Bingo', miniAppUrl)
         .row()
         .webApp('💳 Deposit (ዲፖዚት)', miniAppUrl)
+        .row()
+        .url('📲 Install App / APK (አፑን ጫን)', installUrl)
         .row()
         .url('📢 Channel & Updates', supportChannel)
         .url('💬 Support Desk', `https://t.me/${supportUser}`);
@@ -155,6 +158,30 @@ Tap the button below to launch the game directly inside Telegram! 👇`;
         parse_mode: 'Markdown',
         reply_markup: keyboard,
       });
+    });
+
+    // Optional Player APK / App Install Command
+    bot.command(['apk', 'app', 'install'], async (ctx) => {
+      const installUrl = `${miniAppUrl}?install=true`;
+      const msg = `📲 *AFRO BINGO ይፋዊ አፕሊኬሽን (Official App / APK)*
+
+የአፍሮ ቢንጎን ይፋዊ አፕሊኬሽን ስልክዎ ላይ በመጫን (Install APK) በሙሉ ስክሪን ፈጣን ጨዋታ ይጫወቱ!
+Play full-screen 75-ball live multiplayer bingo anytime directly from your phone's home screen.
+
+✨ *የአፕሊኬሽኑ ጥቅሞች (App Highlights):*
+• 🚀 ፈጣን የመግቢያ አዶ (1-Tap Home Screen Launcher)
+• 📱 ሙሉ ስክሪን ጨዋታ ያለ ቴሌግራም መቆራረጥ (No chat lag)
+• 🎯 ፈጣን የቁጥሮች ጥሪ እና አውቶ-ዳውብ (Instant Live Numbers & Auto-daub)
+• 💳 ፈጣን ቴሌብር እና ሲቢኢ ክፍያዎች (Telebirr & CBE Birr Fast Deposits/Withdrawals)
+
+👇 *ለመጫን ከታች ያለውን ቁልፍ ይጫኑ (በ Chrome ይከፈታል)*:`;
+
+      const kb = new InlineKeyboard()
+        .url('📲 Install App on Phone (አፑን ጫን)', installUrl)
+        .row()
+        .webApp('🎮 Play in Telegram (በቴሌግራም ተጫወት)', miniAppUrl);
+
+      await ctx.reply(msg, { parse_mode: 'Markdown', reply_markup: kb });
     });
 
     // Support & Help Command

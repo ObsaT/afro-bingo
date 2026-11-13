@@ -20,6 +20,9 @@
           } else if (path.indexOf('/admin') !== -1 || search.indexOf('admin=true') !== -1) {
             m.href = '/manifest-admin.json';
             document.title = 'Afro Bingo Admin';
+          } else {
+            m.href = '/manifest-player.json';
+            document.title = 'AFRO BINGO';
           }
         }
       })();

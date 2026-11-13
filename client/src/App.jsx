@@ -19,10 +19,12 @@ export default function App() {
   const isAdminUrl = window.location.pathname === '/admin' || window.location.search.includes('admin=true');
   const isAgentUrl = window.location.pathname === '/agent' || window.location.search.includes('agent=true');
   const isManagerUrl = window.location.pathname === '/manager' || window.location.pathname === '/app';
+  const isPlayerParam = typeof window !== 'undefined' && window.location.search.includes('player=true');
+  const isInstallParam = typeof window !== 'undefined' && window.location.search.includes('install=true');
 
   const [showAdmin, setShowAdmin] = useState(isAdminUrl);
   const [showAgent, setShowAgent] = useState(isAgentUrl);
-  const [inPlayerMode, setInPlayerMode] = useState(false);
+  const [inPlayerMode, setInPlayerMode] = useState(isPlayerParam);
 
   // Check if opened in standalone app mode vs browser
   const isStandalone =
@@ -33,7 +35,7 @@ export default function App() {
     typeof sessionStorage !== 'undefined' && sessionStorage.getItem('dismiss_install_prompt') === 'true'
   );
 
-  const shouldShowInstallModal = (showAdmin || showAgent) && !isStandalone && !hasPromptedInstall;
+  const shouldShowInstallModal = ((showAdmin || showAgent) || isInstallParam) && !isStandalone && !hasPromptedInstall;
   const [activeTab, setActiveTab] = useState('game');
   const [connected, setConnected] = useState(false);
   const [user, setUser] = useState(null);
@@ -408,6 +410,16 @@ export default function App() {
 
   return (
     <div className="flex flex-col h-screen w-screen max-w-lg mx-auto bg-[#120c24] text-white overflow-hidden shadow-2xl relative select-none">
+      {shouldShowInstallModal && !showAdmin && !showAgent && (
+        <InstallAppModal
+          portalType="player"
+          onContinueWeb={() => {
+            sessionStorage.setItem('dismiss_install_prompt', 'true');
+            setHasPromptedInstall(true);
+          }}
+        />
+      )}
+
       {/* Top Header */}
       <Header
         title="AFRO BINGO"
