@@ -2,6 +2,7 @@
 const { v4: uuidv4 } = require('uuid');
 const fs = require('fs');
 const path = require('path');
+const { parseEthiopianSms } = require('./smsParser');
 
 class AdminService {
   constructor(gameEngine) {
@@ -13,6 +14,7 @@ class AdminService {
     this.dataDir = path.join(__dirname, 'data');
     this.txFile = path.join(this.dataDir, 'transactions.json');
     this.agentsFile = path.join(this.dataDir, 'agents.json');
+    this.receiptsFile = path.join(this.dataDir, 'verified_receipts.json');
 
     // Ensure data directory exists
     try {
@@ -33,6 +35,19 @@ class AdminService {
       }
     } catch (e) {
       this.transactions = [];
+    }
+
+    // Load Verified Incoming SMS Receipts from disk
+    this.verifiedReceipts = [];
+    try {
+      if (fs.existsSync(this.receiptsFile)) {
+        this.verifiedReceipts = JSON.parse(fs.readFileSync(this.receiptsFile, 'utf8'));
+      } else {
+        this.verifiedReceipts = [];
+        this.saveVerifiedReceipts();
+      }
+    } catch (e) {
+      this.verifiedReceipts = [];
     }
 
     // Load Agents from disk
@@ -124,6 +139,121 @@ class AdminService {
     } catch (e) {
       console.error('Failed to save agents to disk:', e);
     }
+  }
+
+  saveVerifiedReceipts() {
+    try {
+      if (!fs.existsSync(this.dataDir)) {
+        fs.mkdirSync(this.dataDir, { recursive: true });
+      }
+      fs.writeFileSync(this.receiptsFile, JSON.stringify(this.verifiedReceipts, null, 2), 'utf8');
+    } catch (e) {
+      console.error('Failed to save verified receipts to disk:', e);
+    }
+  }
+
+  // Anti-fraud: Check if this transaction reference number was already recorded in any transaction
+  isReferenceUsed(referenceCode) {
+    if (!referenceCode) return false;
+    const clean = referenceCode.trim().toUpperCase();
+    if (!clean || (clean.startsWith('REF-') && clean.length <= 11)) return false;
+    const inTransactions = this.transactions.some(
+      (t) =>
+        t.referenceCode &&
+        t.referenceCode.trim().toUpperCase() === clean
+    );
+    if (inTransactions) return true;
+    const inReceipts = this.verifiedReceipts.some(
+      (r) => r.referenceCode === clean && r.matched === true
+    );
+    return inReceipts;
+  }
+
+  // Ingest incoming SMS from Agent phone (Telebirr / CBE) & Auto-match pending deposit
+  recordIncomingSms(smsText, agentId = null) {
+    const parsed = parseEthiopianSms(smsText);
+    if (!parsed.referenceCode) {
+      return { success: false, error: 'Could not extract valid transaction reference from SMS message' };
+    }
+
+    const cleanRef = parsed.referenceCode.toUpperCase();
+
+    // Check if receipt is already recorded in verifiedReceipts
+    let receipt = this.verifiedReceipts.find((r) => r.referenceCode === cleanRef);
+    if (!receipt) {
+      receipt = {
+        id: 'rcpt_' + Date.now(),
+        referenceCode: cleanRef,
+        amount: parsed.amount,
+        senderPhone: parsed.senderPhone,
+        provider: parsed.provider,
+        agentId: agentId || null,
+        rawText: smsText,
+        createdAt: new Date().toISOString(),
+        matched: false,
+        depositId: null,
+      };
+      this.verifiedReceipts.unshift(receipt);
+      this.saveVerifiedReceipts();
+    }
+
+    // Look for an existing pending deposit waiting for this referenceCode
+    const pendingTx = this.transactions.find(
+      (t) =>
+        t.type === 'deposit' &&
+        t.status === 'pending' &&
+        t.referenceCode &&
+        t.referenceCode.trim().toUpperCase() === cleanRef
+    );
+
+    if (pendingTx) {
+      // Find agent handling this
+      const targetAgentId = agentId || pendingTx.agentId || (this.agents[0] ? this.agents[0].id : null);
+      if (targetAgentId) {
+        const approval = this.agentVerifyDeposit(targetAgentId, pendingTx.id);
+        if (approval.success) {
+          pendingTx.processedBy = 'Auto-Verified via Telebirr SMS';
+          receipt.matched = true;
+          receipt.depositId = pendingTx.id;
+          this.saveVerifiedReceipts();
+          this.saveTransactions();
+          return {
+            success: true,
+            autoApproved: true,
+            message: `✅ Matched and Auto-Approved ${pendingTx.amount} ETB deposit for ${pendingTx.username}!`,
+            transaction: pendingTx,
+            receipt,
+            userId: pendingTx.userId,
+            playerMainWallet: approval.playerMainWallet,
+          };
+        }
+      }
+    }
+
+    return {
+      success: true,
+      autoApproved: false,
+      message: `Verified SMS logged for Ref #${cleanRef} (${parsed.amount ? parsed.amount + ' ETB' : 'amount detected'}). Ready for instant player deposit match!`,
+      receipt,
+    };
+  }
+
+  // Consume a verified receipt when a player submits a deposit request
+  consumeVerifiedReceipt(referenceCode, amount) {
+    if (!referenceCode) return null;
+    const cleanRef = referenceCode.trim().toUpperCase();
+    const receipt = this.verifiedReceipts.find(
+      (r) =>
+        !r.matched &&
+        r.referenceCode === cleanRef &&
+        (!amount || !r.amount || Math.abs(r.amount - amount) <= 1)
+    );
+    if (receipt) {
+      receipt.matched = true;
+      this.saveVerifiedReceipts();
+      return receipt;
+    }
+    return null;
   }
 
   addTransaction(tx) {

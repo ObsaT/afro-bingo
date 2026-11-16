@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { io } from 'socket.io-client';
+import { parseEthiopianSms } from '../../utils/smsParser';
 import {
   X,
   Copy,
@@ -16,6 +17,8 @@ import {
   Power,
   Radio,
   ShieldCheck,
+  Sparkles,
+  FileText,
 } from 'lucide-react';
 
 export default function BankDepositModal({
@@ -35,6 +38,9 @@ export default function BankDepositModal({
   const [amount, setAmount] = useState('50');
   const [playerPhone, setPlayerPhone] = useState('');
   const [receiptRef, setReceiptRef] = useState('');
+  const [rawSmsText, setRawSmsText] = useState('');
+  const [smsDetected, setSmsDetected] = useState(null);
+  const [showSmsPasteBox, setShowSmsPasteBox] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [feedback, setFeedback] = useState(null);
@@ -111,6 +117,9 @@ export default function BankDepositModal({
     setAmount(String(bank.minAmount || 50));
     setPlayerPhone('');
     setReceiptRef('');
+    setRawSmsText('');
+    setSmsDetected(null);
+    setShowSmsPasteBox(false);
     setFeedback(null);
     setErrors({});
 
@@ -124,6 +133,29 @@ export default function BankDepositModal({
       bestAgent = onlineAgents[0];
     }
     setSelectedAgent(bestAgent || null);
+  };
+
+  // Smart SMS Handler: extracts Reference Code, Amount, and Phone Number from message
+  const handleSmsInput = (inputVal) => {
+    setRawSmsText(inputVal);
+    const parsed = parseEthiopianSms(inputVal);
+
+    if (parsed.referenceCode) {
+      setReceiptRef(parsed.referenceCode);
+      setSmsDetected(parsed);
+      if (parsed.amount) {
+        setAmount(String(parsed.amount));
+      }
+      if (parsed.senderPhone && !playerPhone) {
+        setPlayerPhone(parsed.senderPhone);
+      }
+      if (errors.receiptRef) {
+        setErrors((prev) => ({ ...prev, receiptRef: '' }));
+      }
+    } else {
+      setReceiptRef(inputVal);
+      setSmsDetected(null);
+    }
   };
 
   // Validation function
@@ -198,25 +230,36 @@ export default function BankDepositModal({
           agentId: selectedAgent ? selectedAgent.id : undefined,
           playerPhone: playerPhone.trim(),
           receiptRef: receiptRef.trim() || `REF-${Math.floor(100000 + Math.random() * 900000)}`,
+          rawSms: rawSmsText.trim() || receiptRef.trim(),
         }),
       });
       const data = await res.json();
 
       if (data.success) {
         setIsSuccess(true);
-        setFeedback({
-          type: 'success',
-          msg: `✅ ጥያቄዎ በተሳካ ሁኔታ ተልኳል (Sent successfully)! ወደ ወኪል ቴሌግራም እየሄደ ነው...`,
-        });
+        if (data.autoApproved) {
+          setFeedback({
+            type: 'success',
+            msg: `⚡ በቅጽበት ተረጋግጧል (Instantly Auto-Approved)! ${data.approvedAmount || amount} ETB ወዲያውኑ ወደ አካውንትዎ ገብቷል!`,
+          });
+        } else {
+          setFeedback({
+            type: 'success',
+            msg: `✅ ጥያቄዎ በተሳካ ሁኔታ ተልኳል (Sent successfully)! ወደ ወኪል ቴሌግራም እየሄደ ነው...`,
+          });
+        }
 
-        // 2. Behind the scenes: open Agent's Telegram with prefilled message
+        // Behind the scenes: open Agent's Telegram with prefilled message
         setTimeout(() => {
-          if (data.telegramUrl) {
+          if (data.telegramUrl && !data.autoApproved) {
             window.open(data.telegramUrl, '_blank');
           }
           if (onSuccess) onSuccess();
         }, 1200);
       } else {
+        if (data.error && data.error.includes('ጥቅም ላይ ውሏል')) {
+          setErrors((prev) => ({ ...prev, receiptRef: data.error }));
+        }
         alert(data.error || 'Failed to submit deposit');
       }
     } catch (err) {
@@ -693,25 +736,82 @@ export default function BankDepositModal({
                 )}
               </div>
 
-              {/* Receipt Reference Code */}
-              <div>
-                <label className="text-[11px] font-bold text-gray-600 block mb-1">
-                  የትራንዛክሽን መለያ ኮድ (Transaction Ref Code from SMS):
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. TB-89472190 or CBE-44102"
-                  value={receiptRef}
-                  onChange={(e) => {
-                    setReceiptRef(e.target.value);
-                    if (errors.receiptRef) setErrors((prev) => ({ ...prev, receiptRef: '' }));
-                  }}
-                  className={`w-full px-3 py-2 border rounded-xl font-mono text-xs text-gray-900 focus:outline-none uppercase transition ${
-                    errors.receiptRef
-                      ? 'border-red-500 bg-red-50/20 ring-1 ring-red-400'
-                      : 'border-gray-300 focus:border-green-600'
-                  }`}
-                />
+              {/* Receipt Reference Code & Smart SMS Auto-Extraction */}
+              <div className="bg-emerald-50/50 p-2.5 rounded-xl border border-emerald-200/80">
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-[11px] font-bold text-gray-800 flex items-center gap-1.5">
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>የትራንዛክሽን መለያ ኮድ (Transaction Ref Code / SMS):</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setShowSmsPasteBox(!showSmsPasteBox)}
+                    className="text-[10px] font-bold text-emerald-700 hover:text-emerald-800 underline flex items-center gap-1"
+                  >
+                    <FileText className="w-3 h-3" />
+                    <span>{showSmsPasteBox ? 'Hide SMS Box' : 'ሙሉ መልእክት ለጥፍ (Paste SMS)'}</span>
+                  </button>
+                </div>
+
+                {/* Optional Full SMS Paste Box */}
+                {showSmsPasteBox && (
+                  <div className="mb-2 animate-fade-in">
+                    <textarea
+                      rows={3}
+                      placeholder="ከቴሌብር ወይም ከኢትዮጵያ ንግድ ባንክ (CBE) የደረሶትን አጭር መልእክት (SMS) ሙሉውን እዚህ ይለጥፉ... (Paste your complete Telebirr or CBE Birr SMS here)"
+                      value={rawSmsText}
+                      onChange={(e) => handleSmsInput(e.target.value)}
+                      className="w-full p-2 text-xs border border-emerald-300 rounded-lg bg-white font-mono text-gray-800 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                    />
+                    <div className="text-[10px] text-emerald-700 flex items-center gap-1 mt-0.5">
+                      <Sparkles className="w-3 h-3 shrink-0" />
+                      <span>ሲለጥፉ ኮዱና መጠኑ ራሱ በቀጥታ ይወጣል (Code & amount will be auto-extracted)</span>
+                    </div>
+                  </div>
+                )}
+
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="e.g. TB241116091234 or FT24312ABCDE (ወይም ሙሉውን SMS እዚህ ይለጥፉ)"
+                    value={receiptRef}
+                    onChange={(e) => handleSmsInput(e.target.value)}
+                    className={`w-full px-3 py-2 border rounded-xl font-mono text-xs text-gray-900 focus:outline-none uppercase transition ${
+                      errors.receiptRef
+                        ? 'border-red-500 bg-red-50/20 ring-1 ring-red-400'
+                        : smsDetected
+                        ? 'border-emerald-500 bg-emerald-50/30 ring-1 ring-emerald-400'
+                        : 'border-gray-300 focus:border-green-600'
+                    }`}
+                  />
+                  {smsDetected && (
+                    <span className="absolute right-2 top-2 bg-emerald-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded shadow">
+                      ✓ Auto-Detected
+                    </span>
+                  )}
+                </div>
+
+                {/* Auto-Extracted Details Pill */}
+                {smsDetected && (
+                  <div className="mt-2 p-2 bg-white rounded-lg border border-emerald-300 text-[11px] text-gray-800 shadow-sm flex flex-col gap-1 animate-fade-in">
+                    <div className="flex items-center justify-between font-bold text-emerald-800">
+                      <span className="flex items-center gap-1">
+                        <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                        <span>ትራንዛክሽን ተለይቷል ({smsDetected.provider?.toUpperCase()})</span>
+                      </span>
+                      <span className="font-mono text-xs bg-emerald-100 text-emerald-900 px-1.5 py-0.5 rounded">
+                        {smsDetected.referenceCode}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-[10px] text-gray-600 pt-1 border-t border-gray-100">
+                      <span>የተገኘ መጠን: <b className="text-gray-900 font-mono">{smsDetected.amount ? `${smsDetected.amount} ETB` : '--'}</b></span>
+                      {smsDetected.senderPhone && (
+                        <span>ላኪ ስልክ: <b className="text-gray-900 font-mono">{smsDetected.senderPhone}</b></span>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 {errors.receiptRef && (
                   <div className="text-[11px] text-red-600 font-semibold mt-1 flex items-center gap-1 animate-fade-in">
                     <AlertTriangle className="w-3.5 h-3.5 shrink-0" />

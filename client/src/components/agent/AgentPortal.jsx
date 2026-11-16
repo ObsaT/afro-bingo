@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { io } from 'socket.io-client';
 import { playDepositAlertSound, playWithdrawalAlertSound } from '../../utils/audio';
+import { parseEthiopianSms } from '../../utils/smsParser';
 import {
   Briefcase,
   CheckCircle,
@@ -19,6 +20,12 @@ import {
   BellRing,
   Power,
   Radio,
+  MessageSquare,
+  Sparkles,
+  Copy,
+  Check,
+  FileText,
+  ExternalLink,
 } from 'lucide-react';
 
 export default function AgentPortal({ onExit }) {
@@ -36,7 +43,14 @@ export default function AgentPortal({ onExit }) {
   const [companyAssets, setCompanyAssets] = useState(null);
   const [recentProcessed, setRecentProcessed] = useState([]);
   const [feedback, setFeedback] = useState(null);
-  const [activeTab, setActiveTab] = useState('deposits'); // 'deposits' | 'withdrawals' | 'assets'
+  const [activeTab, setActiveTab] = useState('deposits'); // 'deposits' | 'withdrawals' | 'sms' | 'assets'
+  const [verifiedReceipts, setVerifiedReceipts] = useState([]);
+
+  // Fast SMS Scanner / Auto-Approval
+  const [agentSmsInput, setAgentSmsInput] = useState('');
+  const [smsScanning, setSmsScanning] = useState(false);
+  const [smsScanResult, setSmsScanResult] = useState(null);
+  const [copiedWebhook, setCopiedWebhook] = useState(false);
 
   // Direct Top-Up Modal
   const [showDirectModal, setShowDirectModal] = useState(false);
@@ -142,7 +156,62 @@ export default function AgentPortal({ onExit }) {
         setCompanyAssets(data.companyAssets || null);
         setRecentProcessed(data.recentProcessed || []);
       }
+      fetchVerifiedReceipts(id);
     } catch (err) {}
+  };
+
+  const fetchVerifiedReceipts = async (agentId) => {
+    const id = agentId || agent?.id;
+    if (!id) return;
+    try {
+      const res = await fetch(`/api/agent/${id}/verified-receipts`);
+      const data = await res.json();
+      if (data.success && data.receipts) {
+        setVerifiedReceipts(data.receipts);
+      }
+    } catch (err) {}
+  };
+
+  // Agent SMS Ingestion & Fast Auto-Approval
+  const handleProcessAgentSms = async (textToProcess) => {
+    const input = (textToProcess || agentSmsInput).trim();
+    if (!input || !agent) return;
+    setSmsScanning(true);
+    setSmsScanResult(null);
+
+    try {
+      const res = await fetch('/api/agent/incoming-sms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          smsText: input,
+          agentId: agent.id,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setSmsScanResult({
+          type: 'success',
+          msg: data.message,
+          data: data,
+        });
+        showNotification(data.message);
+        setAgentSmsInput('');
+        fetchDashboard(agent.id);
+      } else {
+        setSmsScanResult({
+          type: 'error',
+          msg: data.error || 'Failed to process SMS receipt',
+        });
+      }
+    } catch (err) {
+      setSmsScanResult({
+        type: 'error',
+        msg: 'Server/network error processing SMS',
+      });
+    } finally {
+      setSmsScanning(false);
+    }
   };
 
   useEffect(() => {
@@ -629,6 +698,18 @@ export default function AgentPortal({ onExit }) {
         </button>
 
         <button
+          onClick={() => setActiveTab('sms')}
+          className={`flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-t-xl transition ${
+            activeTab === 'sms'
+              ? 'bg-[#22164d] text-white border-t-2 border-emerald-400 shadow'
+              : 'text-gray-400 hover:text-gray-200'
+          }`}
+        >
+          <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+          <span>SMS Auto-Scan ({verifiedReceipts.length})</span>
+        </button>
+
+        <button
           onClick={() => setActiveTab('assets')}
           className={`flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-t-xl transition ${
             activeTab === 'assets'
@@ -652,6 +733,54 @@ export default function AgentPortal({ onExit }) {
                 <span>Incoming Player Deposits ({pendingRequests.length})</span>
               </h3>
               <span className="text-[10px] text-gray-400">Check your SMS / App first</span>
+            </div>
+
+            {/* Quick SMS Fast Scan & Auto-Verify Banner */}
+            <div className="bg-gradient-to-r from-emerald-950/80 via-[#10241e] to-[#1a1238] p-3 rounded-2xl border border-emerald-500/40 mb-3 shadow-md">
+              <div className="flex items-center justify-between mb-1.5">
+                <div className="flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+                  <span className="text-xs font-black text-white">Quick SMS Auto-Verifier (Telebirr & CBE)</span>
+                </div>
+                <span className="text-[9px] text-emerald-300 font-bold bg-emerald-900/60 px-2 py-0.5 rounded border border-emerald-500/30">
+                  Instant Match
+                </span>
+              </div>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Paste Telebirr or CBE Birr SMS here to auto-approve..."
+                  value={agentSmsInput}
+                  onChange={(e) => setAgentSmsInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleProcessAgentSms();
+                    }
+                  }}
+                  className="flex-1 px-3 py-1.5 bg-[#0e1726] border border-emerald-500/40 rounded-xl text-xs text-white placeholder-gray-400 focus:outline-none focus:border-emerald-400 font-mono"
+                />
+                <button
+                  type="button"
+                  onClick={() => handleProcessAgentSms()}
+                  disabled={smsScanning || !agentSmsInput.trim()}
+                  className="px-3.5 py-1.5 bg-gradient-to-r from-emerald-600 to-green-500 hover:from-emerald-500 hover:to-green-400 disabled:opacity-50 text-white text-xs font-black rounded-xl shadow transition active:scale-95 shrink-0 flex items-center gap-1"
+                >
+                  {smsScanning ? '...' : <CheckCircle className="w-3.5 h-3.5" />}
+                  <span>{smsScanning ? 'Checking' : 'Auto-Approve'}</span>
+                </button>
+              </div>
+              {smsScanResult && (
+                <div
+                  className={`mt-2 p-2 rounded-xl text-xs font-bold animate-fade-in ${
+                    smsScanResult.type === 'success'
+                      ? 'bg-emerald-900/60 text-emerald-200 border border-emerald-500/40'
+                      : 'bg-red-900/60 text-red-200 border border-red-500/40'
+                  }`}
+                >
+                  {smsScanResult.msg}
+                </div>
+              )}
             </div>
 
             {pendingRequests.length === 0 ? (
@@ -916,6 +1045,244 @@ export default function AgentPortal({ onExit }) {
                           </tr>
                         );
                       })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ================= SMS AUTO-SCANNER & VERIFIER TAB ================= */}
+        {activeTab === 'sms' && (
+          <div className="flex flex-col gap-3">
+            {/* Header / Intro */}
+            <div className="bg-gradient-to-br from-[#132822] via-[#1a223f] to-[#120a2a] p-4 rounded-3xl border border-emerald-500/40 shadow-xl flex flex-col gap-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-9 h-9 rounded-xl bg-emerald-500/20 border border-emerald-400/40 flex items-center justify-center text-emerald-300">
+                    <Sparkles className="w-5 h-5 text-emerald-400" />
+                  </div>
+                  <div>
+                    <h2 className="text-sm font-black text-white">SMS Auto-Verifier & Fast-Match</h2>
+                    <p className="text-[10px] text-emerald-300">
+                      Telebirr & CBE Birr Instant Transaction Verification
+                    </p>
+                  </div>
+                </div>
+                <span className="text-[10px] bg-emerald-900/60 border border-emerald-400/40 text-emerald-300 px-2 py-0.5 rounded-full font-bold">
+                  Anti-Fraud Protected
+                </span>
+              </div>
+              <p className="text-[11px] text-gray-300 leading-relaxed border-t border-emerald-500/20 pt-2">
+                Paste any confirmation SMS from Telebirr (*127*...) or CBE. The system instantly parses the reference number, verifies the amount, and auto-credits the player's account in real-time.
+              </p>
+            </div>
+
+            {/* Interactive SMS Scanner Box */}
+            <div className="bg-[#1b123d] p-4 rounded-2xl border border-[#3b287d] shadow-md flex flex-col gap-3">
+              <label className="text-xs font-bold text-white flex items-center gap-1.5">
+                <FileText className="w-4 h-4 text-emerald-400" />
+                <span>Paste Confirmation SMS Message Here:</span>
+              </label>
+
+              <textarea
+                rows={4}
+                value={agentSmsInput}
+                onChange={(e) => setAgentSmsInput(e.target.value)}
+                placeholder="Paste the SMS you received on your phone here (e.g. 'You have received 200 ETB from 0911... Trans. No: TB241116...' or 'Dear Customer, your account has been credited with ETB 500.00... Txn Id: FT2431...')"
+                className="w-full p-3 bg-[#110a26] border border-[#3f2b87] rounded-xl text-xs text-white placeholder-gray-500 font-mono focus:outline-none focus:border-emerald-400 transition"
+              />
+
+              {/* Real-Time Live Parse Preview */}
+              {(() => {
+                const liveParsed = parseEthiopianSms(agentSmsInput);
+                if (!agentSmsInput.trim()) return null;
+                return (
+                  <div className="bg-[#140c2e] p-3 rounded-xl border border-emerald-500/30 flex flex-col gap-1.5 animate-fade-in">
+                    <div className="flex items-center justify-between text-xs font-bold">
+                      <span className="text-emerald-400 flex items-center gap-1">
+                        <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                        <span>Live Extraction ({liveParsed.provider.toUpperCase()}):</span>
+                      </span>
+                      {liveParsed.referenceCode ? (
+                        <span className="text-green-400 font-mono bg-green-950/60 px-2 py-0.5 rounded border border-green-500/40">
+                          ✓ Ref: {liveParsed.referenceCode}
+                        </span>
+                      ) : (
+                        <span className="text-yellow-400 text-[10px]">No Reference Code Found Yet</span>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 text-[11px] text-gray-300 pt-1 border-t border-[#2d1e5e]">
+                      <div>
+                        <span className="text-gray-400">Extracted Amount:</span>{' '}
+                        <b className="text-yellow-300 font-mono">
+                          {liveParsed.amount ? `${liveParsed.amount} ETB` : 'Not detected'}
+                        </b>
+                      </div>
+                      <div>
+                        <span className="text-gray-400">Sender Phone:</span>{' '}
+                        <b className="text-white font-mono">{liveParsed.senderPhone || 'Not detected'}</b>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleProcessAgentSms()}
+                  disabled={smsScanning || !agentSmsInput.trim()}
+                  className="flex-1 py-2.5 bg-gradient-to-r from-emerald-600 to-green-500 hover:from-emerald-500 hover:to-green-400 disabled:opacity-50 text-white text-xs font-black rounded-xl shadow-lg transition active:scale-95 flex items-center justify-center gap-2"
+                >
+                  {smsScanning ? (
+                    <span>⏳ በመመርመር ላይ (Verifying SMS...)...</span>
+                  ) : (
+                    <>
+                      <CheckCircle className="w-4 h-4" />
+                      <span>⚡ Scan & Auto-Verify Deposit (አረጋግጥና ጨምር)</span>
+                    </>
+                  )}
+                </button>
+                {agentSmsInput && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAgentSmsInput('');
+                      setSmsScanResult(null);
+                    }}
+                    className="px-3 py-2.5 bg-[#251950] text-gray-400 hover:text-white rounded-xl text-xs font-bold"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+
+              {smsScanResult && (
+                <div
+                  className={`p-3 rounded-xl text-xs font-bold animate-fade-in ${
+                    smsScanResult.type === 'success'
+                      ? 'bg-emerald-900/60 text-emerald-200 border border-emerald-500/40'
+                      : 'bg-red-900/60 text-red-200 border border-red-500/40'
+                  }`}
+                >
+                  <div className="flex items-center gap-1.5 mb-1">
+                    {smsScanResult.type === 'success' ? (
+                      <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
+                    ) : (
+                      <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
+                    )}
+                    <span>{smsScanResult.msg}</span>
+                  </div>
+                  {smsScanResult.data?.receipt && (
+                    <div className="text-[10px] text-gray-300 font-mono mt-1">
+                      Reference: {smsScanResult.data.receipt.referenceCode} • Amount: {smsScanResult.data.receipt.amount} ETB
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Automated Webhook Forwarder Section */}
+            <div className="bg-[#160f33] p-3.5 rounded-2xl border border-[#2d1e5e] flex flex-col gap-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-black text-cyan-300 flex items-center gap-1.5">
+                  <span>🤖</span>
+                  <span>100% Automated SMS Forwarder (Android Webhook)</span>
+                </span>
+                <span className="text-[9px] bg-cyan-950 text-cyan-300 font-bold px-2 py-0.5 rounded border border-cyan-500/30">
+                  Optional Hands-Free
+                </span>
+              </div>
+              <p className="text-[10px] text-gray-300 leading-relaxed">
+                You can forward incoming Telebirr/CBE SMS automatically from your Android phone using any free SMS Forwarder app.
+              </p>
+
+              <div className="bg-[#0e0822] p-2.5 rounded-xl border border-[#2a1a54] flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <span className="text-[9px] text-gray-400 block font-bold">Your Agent Webhook Endpoint URL:</span>
+                  <span className="text-xs font-mono text-yellow-300 truncate block">
+                    {typeof window !== 'undefined' ? `${window.location.origin}/api/agent/incoming-sms` : '/api/agent/incoming-sms'}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const url = `${window.location.origin}/api/agent/incoming-sms`;
+                    navigator.clipboard?.writeText(url);
+                    setCopiedWebhook(true);
+                    setTimeout(() => setCopiedWebhook(false), 2000);
+                  }}
+                  className="px-2.5 py-1.5 bg-[#251950] hover:bg-[#342470] text-cyan-300 text-[10px] font-bold rounded-lg border border-cyan-500/30 transition shrink-0 flex items-center gap-1"
+                >
+                  {copiedWebhook ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5" />}
+                  <span>{copiedWebhook ? 'Copied!' : 'Copy URL'}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Verified Receipts History Table */}
+            <div className="mt-1">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-xs font-bold text-gray-300">
+                  Recent Verified SMS Receipts ({verifiedReceipts.length})
+                </h3>
+                <button
+                  onClick={() => fetchVerifiedReceipts(agent.id)}
+                  className="text-[10px] text-cyan-400 hover:underline flex items-center gap-1"
+                >
+                  <RefreshCw className="w-3 h-3" />
+                  <span>Refresh</span>
+                </button>
+              </div>
+
+              {verifiedReceipts.length === 0 ? (
+                <div className="text-center py-6 bg-[#1b123d] rounded-2xl border border-[#342470] text-gray-500 text-xs">
+                  No verified receipts recorded yet.
+                </div>
+              ) : (
+                <div className="overflow-x-auto bg-[#1b123d] rounded-2xl border border-[#342470] p-1">
+                  <table className="w-full text-left text-[10px] text-gray-300">
+                    <thead className="bg-[#24194d] text-gray-400 uppercase text-[9px] border-b border-[#362675]">
+                      <tr>
+                        <th className="py-2 px-2">Ref Code</th>
+                        <th className="py-2 px-2">Provider</th>
+                        <th className="py-2 px-2 text-right">Amount</th>
+                        <th className="py-2 px-2 text-center">Status</th>
+                        <th className="py-2 px-2">Recorded At</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#2a1b59]">
+                      {verifiedReceipts.map((rc) => (
+                        <tr key={rc.id} className="hover:bg-[#201548]">
+                          <td className="py-2 px-2">
+                            <span className="font-mono text-yellow-300 font-bold block">{rc.referenceCode}</span>
+                            {rc.matchedPlayer && (
+                              <span className="text-[9px] text-gray-400">Player: @{rc.matchedPlayer}</span>
+                            )}
+                          </td>
+                          <td className="py-2 px-2 uppercase font-bold text-white">{rc.provider}</td>
+                          <td className="py-2 px-2 text-right font-mono font-bold text-green-400">
+                            {rc.amount ? `${rc.amount} ETB` : '--'}
+                          </td>
+                          <td className="py-2 px-2 text-center">
+                            <span
+                              className={`px-2 py-0.5 rounded font-black uppercase text-[8px] ${
+                                rc.used
+                                  ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                                  : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                              }`}
+                            >
+                              {rc.used ? 'Matched & Paid' : 'Available'}
+                            </span>
+                          </td>
+                          <td className="py-2 px-2 text-gray-500 font-mono text-[9px]">
+                            {rc.receivedAt ? new Date(rc.receivedAt).toLocaleTimeString() : '--'}
+                          </td>
+                        </tr>
+                      ))}
                     </tbody>
                   </table>
                 </div>

@@ -11,6 +11,7 @@ const { setupTelegramBot } = require('./bot');
 const AdminService = require('./adminService');
 const BankService = require('./bankService');
 const voiceService = require('./voiceService');
+const { parseEthiopianSms } = require('./smsParser');
 
 const app = express();
 const server = http.createServer(app);
@@ -441,7 +442,23 @@ app.post('/api/wallet/deposit-request', (req, res) => {
     return res.status(400).json({ error: 'Sender phone or account number is required' });
   }
 
-  const refCode = (receiptRef || '').trim() || `REF-${Math.floor(100000 + Math.random() * 900000)}`;
+  // Smart Reference Parsing (auto-extracts reference ID if full SMS was pasted)
+  let refCode = (receiptRef || '').trim();
+  const parsedRef = parseEthiopianSms(refCode);
+  if (parsedRef.referenceCode) {
+    refCode = parsedRef.referenceCode.toUpperCase();
+  } else if (!refCode) {
+    refCode = `REF-${Math.floor(100000 + Math.random() * 900000)}`;
+  } else {
+    refCode = refCode.toUpperCase();
+  }
+
+  // --- ANTI-FRAUD: Prevent Duplicate Transaction Reference Numbers ---
+  if (adminService.isReferenceUsed(refCode)) {
+    return res.status(400).json({
+      error: `⚠️ ይህ የትራንዛክሽን መለያ ቁጥር (${refCode}) ቀደም ሲል ጥቅም ላይ ውሏል! እባክዎ አዲስና ትክክለኛ የኤስኤምኤስ (SMS) መለያ ያስገቡ (This transaction reference has already been used).`,
+    });
+  }
 
   // Find assigned agent: prioritize explicit agentId from player, then bank's agent, then available active agent
   let agent = null;
@@ -482,6 +499,31 @@ app.post('/api/wallet/deposit-request', (req, res) => {
   const recipientAccount = agent.accountNumber || bank.accountNumber;
   const recipientName = agent.recipientName || agent.name || bank.recipientName;
 
+  // --- AUTO-VERIFICATION MATCH AGAINST AGENT INCOMING SMS ---
+  const matchedReceipt = adminService.consumeVerifiedReceipt(refCode, num);
+  const isAutoApproved = !!matchedReceipt;
+
+  let initialStatus = isAutoApproved ? 'approved' : 'pending';
+  let processedAt = isAutoApproved ? new Date().toLocaleTimeString() : null;
+  let processedBy = isAutoApproved
+    ? `Auto-Verified via ${matchedReceipt.provider === 'cbe' ? 'CBE' : 'Telebirr'} SMS`
+    : null;
+
+  if (isAutoApproved) {
+    // Credit player wallet immediately
+    user.mainWallet = (user.mainWallet || 0) + num;
+    gameEngine.saveUsers();
+
+    // Deduct agent float and award commission
+    if (agent.balance >= num) {
+      agent.balance -= num;
+      agent.totalDepositsHandled += num;
+      const commission = Math.round(num * (agent.commissionRate / 100));
+      agent.totalCommissionEarned += commission;
+      adminService.saveAgents();
+    }
+  }
+
   const tx = {
     id: 'tx_dep_' + Date.now(),
     userId: user.id,
@@ -499,12 +541,33 @@ app.post('/api/wallet/deposit-request', (req, res) => {
     agentId,
     agentTelegram,
     agentName: agent.name || 'Official Agent',
-    status: 'pending',
+    status: initialStatus,
     createdAt: new Date().toLocaleTimeString(),
-    processedAt: null,
+    processedAt,
+    processedBy,
+    autoApproved: isAutoApproved,
   };
 
   adminService.addTransaction(tx);
+
+  if (isAutoApproved) {
+    // Notify player in real-time
+    io.emit('wallet_updated', {
+      userId: user.id,
+      mainWallet: user.mainWallet,
+      message: `✅ ተቀማጭዎ ${num} ETB በቴሌብር መልእክት ወዲያውኑ ተረጋግጦ ገቢ ሆኗል (Auto-approved instantly)!`,
+    });
+    io.emit('transactions_updated');
+
+    return res.json({
+      success: true,
+      autoApproved: true,
+      message: `✅ ተቀማጭዎ ${num} ETB በቴሌብር መልእክት ወዲያውኑ ተረጋግጦ ገቢ ሆኗል (Auto-Approved Instantly)!`,
+      transaction: tx,
+      playerId: user.id,
+      mainWallet: user.mainWallet,
+    });
+  }
 
   // 1. Instantly notify Agent Portal via real-time WebSocket
   io.emit('new_deposit_request', {
@@ -536,6 +599,7 @@ app.post('/api/wallet/deposit-request', (req, res) => {
 
   res.json({
     success: true,
+    autoApproved: false,
     message: `Deposit request created! Money will be credited once Agent approves.`,
     transaction: tx,
     playerId: user.id,
@@ -574,6 +638,30 @@ app.post('/api/agent/login', (req, res) => {
 app.get('/api/agent/:id/dashboard', (req, res) => {
   const result = adminService.getAgentDashboard(req.params.id);
   res.json(result);
+});
+
+// Agent / Android SMS Gateway posts incoming Telebirr or CBE SMS for Auto-Verification
+app.post('/api/agent/incoming-sms', (req, res) => {
+  const { text, smsText, message, agentId } = req.body;
+  const rawSms = text || smsText || message || '';
+  if (!rawSms) return res.status(400).json({ error: 'SMS message text is required' });
+
+  const result = adminService.recordIncomingSms(rawSms, agentId);
+  if (result.autoApproved) {
+    gameEngine.saveUsers();
+    io.emit('wallet_updated', {
+      userId: result.userId,
+      mainWallet: result.playerMainWallet,
+      message: `✅ ተቀማጭዎ ${result.transaction.amount} ETB ወዲያውኑ በቴሌብር መልእክት ተረጋግጦ ገቢ ሆኗል!`,
+    });
+    io.emit('transactions_updated');
+  }
+  res.json(result);
+});
+
+// Get Verified Incoming Receipts
+app.get('/api/agent/:id/verified-receipts', (req, res) => {
+  res.json({ receipts: adminService.verifiedReceipts.slice(0, 50) });
 });
 
 // Agent Toggles their Own Availability (Online/Offline)
