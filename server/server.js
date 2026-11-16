@@ -420,24 +420,6 @@ app.post('/api/admin/banks/:id/toggle', requireAdmin, (req, res) => {
   res.json(result);
 });
 
-// Validate transaction reference code for duplicates (real-time validation)
-app.get('/api/wallet/validate-reference', (req, res) => {
-  const { ref, userId } = req.query;
-  if (!ref || !ref.trim()) {
-    return res.json({ valid: true, duplicate: false });
-  }
-
-  const parsed = parseEthiopianSms(ref);
-  const codeToCheck = parsed.referenceCode || ref.trim();
-
-  const validation = adminService.validateReference(codeToCheck, userId);
-  return res.json({
-    ...validation,
-    referenceCode: codeToCheck,
-    parsed,
-  });
-});
-
 // Player confirms deposit (Melbet style: copies ID & generates Telegram dispatch to Agent)
 app.post('/api/wallet/deposit-request', (req, res) => {
   const { userId, amount, bankId, agentId: reqAgentId, playerPhone, receiptRef, rawSms, receiptImage } = req.body;
@@ -471,13 +453,11 @@ app.post('/api/wallet/deposit-request', (req, res) => {
     refCode = refCode.toUpperCase();
   }
 
-  // --- ANTI-FRAUD: Prevent Duplicate Transaction Reference Numbers ---
+  // --- ANTI-FRAUD: Validate Transaction Reference (Do not expose internal details) ---
   const refValidation = adminService.validateReference(refCode, user.id);
   if (!refValidation.valid) {
     return res.status(400).json({
-      error: refValidation.error || `⚠️ ይህ የትራንዛክሽን መለያ ቁጥር (${refCode}) ቀደም ሲል ጥቅም ላይ ውሏል! እባክዎ አዲስና ትክክለኛ የኤስኤምኤስ (SMS) መለያ ያስገቡ (This transaction reference has already been used).`,
-      duplicate: true,
-      referenceCode: refCode,
+      error: refValidation.error || 'ይህ የትራንዛክሽን መለያ ቁጥር ተቀባይነት የለውም፤ እባክዎ ትክክለኛ የከፈሉበትን ደረሰኝ መለያ ያስገቡ (Invalid transaction reference).',
     });
   }
 

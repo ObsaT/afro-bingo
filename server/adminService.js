@@ -157,14 +157,14 @@ class AdminService {
     return String(code).trim().toUpperCase().replace(/[\s_-]+/g, '');
   }
 
-  // Validate if a reference code has already been used (anti-duplicate)
+  // Anti-fraud: Validate if a reference code has already been used without exposing sensitive details
   validateReference(referenceCode, userId = null) {
     if (!referenceCode) {
-      return { valid: true, isDefault: true };
+      return { valid: true };
     }
     const clean = this.normalizeReference(referenceCode);
     if (!clean || (clean.startsWith('REF') && clean.length <= 11)) {
-      return { valid: true, isDefault: true };
+      return { valid: true };
     }
 
     // 1. Check all past and pending transactions in database
@@ -174,19 +174,9 @@ class AdminService {
     });
 
     if (existingTx) {
-      const isSameUser = userId && String(existingTx.userId) === String(userId);
-      const errorMsg = isSameUser
-        ? `⚠️ ይህን የትራንዛክሽን መለያ ቁጥር (${referenceCode}) ቀደም ሲል ልከውታል! እባክዎ አዲስ የከፈሉበትን የኤስኤምኤስ (SMS) መለያ ያስገቡ (You have already submitted this transaction reference).`
-        : `⚠️ ይህ የትራንዛክሽን መለያ ቁጥር (${referenceCode}) ቀደም ሲል ጥቅም ላይ ውሏል! እባክዎ አዲስና ትክክለኛ የኤስኤምኤስ (SMS) መለያ ያስገቡ (This transaction reference has already been used by another transaction).`;
-
       return {
         valid: false,
-        duplicate: true,
-        reason: 'DUPLICATE_TRANSACTION',
-        error: errorMsg,
-        referenceCode,
-        status: existingTx.status,
-        txId: existingTx.id,
+        error: 'ይህ የትራንዛክሽን መለያ ቁጥር ተቀባይነት የለውም፤ እባክዎ ትክክለኛ የከፈሉበትን ደረሰኝ መለያ ያስገቡ (Invalid transaction reference. Please verify your payment receipt and try again).',
       };
     }
 
@@ -199,17 +189,12 @@ class AdminService {
     if (matchedReceipt) {
       return {
         valid: false,
-        duplicate: true,
-        reason: 'DUPLICATE_RECEIPT',
-        error: `⚠️ ይህ የትራንዛክሽን መለያ ቁጥር (${referenceCode}) ቀደም ሲል ለሌላ ተቀማጭ ተረጋግጧል (This receipt has already been matched and used).`,
-        referenceCode,
+        error: 'ይህ የትራንዛክሽን መለያ ቁጥር ተቀባይነት የለውም፤ እባክዎ ትክክለኛ የከፈሉበትን ደረሰኝ መለያ ያስገቡ (Invalid transaction reference. Please verify your payment receipt and try again).',
       };
     }
 
     return {
       valid: true,
-      duplicate: false,
-      referenceCode,
       cleanReference: clean,
     };
   }
