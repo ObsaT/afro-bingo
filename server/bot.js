@@ -342,19 +342,16 @@ ${listText}
       await ctx.reply(withdrawMsg, { parse_mode: 'Markdown', reply_markup: keyboard });
     });
 
-    // Dynamic Agents List managed by Admin
+    // Dynamic Agents List managed by Admin (Only Online / Available Agents shown to players)
     bot.command(['agents', 'agent'], async (ctx) => {
       const activeAgents = adminService ? adminService.getActiveAgents() : [];
+      const onlineAgents = activeAgents.filter((ag) => ag.isAvailable !== false);
       let agentListText = '';
 
-      if (activeAgents.length > 0) {
-        agentListText = activeAgents
+      if (onlineAgents.length > 0) {
+        agentListText = onlineAgents
           .map((ag, i) => {
-            const availStatus =
-              ag.isAvailable !== false
-                ? '🟢 *ክፍት ነው (Available)*'
-                : '🔴 *ተዘግቷል (Offline - አይቀበልም)*';
-            return `${i + 1}. 👤 *${ag.name}* [${availStatus}]
+            return `${i + 1}. 👤 *${ag.name}* [🟢 ክፍት ነው]
    📱 *ስልክ:* \`${ag.phone}\`
    🏦 *ባንክ/ቴሌብር:* ${ag.bankName} (\`${ag.accountNumber}\`)
    👤 *የሂሳብ ስም:* ${ag.recipientName || ag.name}
@@ -362,16 +359,15 @@ ${listText}
           })
           .join('\n\n');
       } else {
-        agentListText = '• Bole Medhanealem Agent (@bole_afro_agent) - 0911445566 [🟢 Available]\n• Megenagna Cashier Agent (@afro_cashier_agent) - 0911223344 [🟢 Available]';
+        agentListText = '⚠️ *በአሁኑ ሰዓት ምንም ክፍት ወኪል የለም። እባክዎ ጥቂት ቆይተው እንደገና ይመልከቱ።*\n(All agents are currently offline. Please check back shortly.)';
       }
 
       const agentMsg = `🤝 *የተረጋገጡ የቢንጎ ወኪሎች (Official Bingo Agents):*
-ገንዘብ ለማስገባት (Deposit) ወይም ለማውጣት (Withdraw) ከታች ያሉትን ወኪሎች በቴሌግራም ማግኘት ይችላሉ፦
+ገንዘብ ለማስገባት (Deposit) ወይም ለማውጣት (Withdraw) በአሁኑ ሰዓት ክፍት ከሆኑት ወኪሎች ጋር በቴሌግራም መገናኘት ይችላሉ፦
 
 ${agentListText}
 
 ━━━━━━━━━━━━━━━━━━━━
-⚠️ *ማስታወሻ፦* እባክዎ ክፍት (🟢 Available) ለሆኑ ወኪሎች ብቻ ክፍያ ያስተላልፉ።
 የወኪል ፖርታል ለመክፈት ከታች ያለውን አዝራር ይጫኑ።`;
 
       const keyboard = new InlineKeyboard()

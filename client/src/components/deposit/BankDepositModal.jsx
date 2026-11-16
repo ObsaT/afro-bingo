@@ -114,20 +114,14 @@ export default function BankDepositModal({
     setFeedback(null);
     setErrors({});
 
-    // Pick best available agent for this bank or first available agent
-    let bestAgent = agents.find(
+    // Pick best available agent for this bank or first available online agent
+    const onlineAgents = agents.filter((a) => a.isAvailable !== false);
+    let bestAgent = onlineAgents.find(
       (a) =>
-        a.isAvailable !== false &&
-        (a.telegramUsername?.toLowerCase() === bank.agentTelegram?.toLowerCase() || a.id === bank.agentId)
+        a.telegramUsername?.toLowerCase() === bank.agentTelegram?.toLowerCase() || a.id === bank.agentId
     );
     if (!bestAgent) {
-      bestAgent = agents.find((a) => a.isAvailable !== false);
-    }
-    if (!bestAgent) {
-      bestAgent =
-        agents.find(
-          (a) => a.telegramUsername?.toLowerCase() === bank.agentTelegram?.toLowerCase() || a.id === bank.agentId
-        ) || agents[0];
+      bestAgent = onlineAgents[0];
     }
     setSelectedAgent(bestAgent || null);
   };
@@ -288,14 +282,9 @@ export default function BankDepositModal({
           </span>
 
           <div className="flex items-center gap-1.5 text-[10px] font-bold">
-            <span className="text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-              🟢 {agents.filter((a) => a.isAvailable !== false).length} Agents Online
+            <span className="text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
+              🟢 {agents.filter((a) => a.isAvailable !== false).length} Active Cashiers Online
             </span>
-            {agents.filter((a) => a.isAvailable === false).length > 0 && (
-              <span className="text-rose-700 bg-rose-50 px-2 py-0.5 rounded-full border border-rose-200">
-                🔴 {agents.filter((a) => a.isAvailable === false).length} Offline
-              </span>
-            )}
           </div>
         </div>
 
@@ -495,63 +484,65 @@ export default function BankDepositModal({
                   )}
                 </div>
 
-                {/* Multiple Agents Selector Pills */}
-                {agents.length > 0 && (
-                  <div className="flex flex-col gap-1.5 max-h-36 overflow-y-auto pr-0.5">
-                    {agents.map((ag) => {
-                      const isOnline = ag.isAvailable !== false;
-                      const isSelected = selectedAgent?.id === ag.id;
-                      return (
-                        <button
-                          key={ag.id}
-                          type="button"
-                          onClick={() => setSelectedAgent(ag)}
-                          className={`p-2 rounded-xl text-left border transition flex items-center justify-between ${
-                            isSelected
-                              ? isOnline
+                {/* Available Online Cashier Agents Selector (Offline agents are strictly hidden) */}
+                {(() => {
+                  const onlineAgents = agents.filter((ag) => ag.isAvailable !== false);
+                  if (onlineAgents.length === 0) {
+                    return (
+                      <div className="p-3 bg-amber-50 border border-amber-300 rounded-xl text-amber-900 text-xs font-bold flex items-start gap-2">
+                        <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                        <div>
+                          <div>በአሁኑ ሰዓት ምንም ክፍት ወኪል የለም (No Cashier Online)!</div>
+                          <div className="text-[10px] font-normal text-amber-800 mt-0.5">
+                            እባክዎ ወኪሎች ክፍት እስኪሆኑ ድረስ ጥቂት ቆይተው እንደገና ይሞክሩ።
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className="flex flex-col gap-1.5 max-h-36 overflow-y-auto pr-0.5">
+                      {onlineAgents.map((ag) => {
+                        const isSelected = selectedAgent?.id === ag.id;
+                        return (
+                          <button
+                            key={ag.id}
+                            type="button"
+                            onClick={() => setSelectedAgent(ag)}
+                            className={`p-2 rounded-xl text-left border transition flex items-center justify-between ${
+                              isSelected
                                 ? 'bg-emerald-50 border-emerald-500 ring-2 ring-emerald-400 shadow-sm'
-                                : 'bg-rose-50 border-rose-500 ring-2 ring-rose-400 shadow-sm'
-                              : isOnline
-                              ? 'bg-white border-gray-200 hover:border-emerald-300 hover:bg-emerald-50/40'
-                              : 'bg-gray-100 border-gray-200 opacity-60 hover:opacity-90'
-                          }`}
-                        >
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-1.5">
-                              <span className="font-bold text-xs text-gray-900 truncate">{ag.name}</span>
+                                : 'bg-white border-gray-200 hover:border-emerald-300 hover:bg-emerald-50/40'
+                            }`}
+                          >
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-1.5">
+                                <span className="font-bold text-xs text-gray-900 truncate">{ag.name}</span>
+                                <span className="text-[9px] font-extrabold px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-800">
+                                  🟢 ክፍት ነው
+                                </span>
+                              </div>
+                              <div className="text-[10px] text-gray-500 font-mono mt-0.5">
+                                {ag.phone} • {ag.recipientName || ag.name}
+                              </div>
+                            </div>
+
+                            <div className="text-right shrink-0 ml-2">
                               <span
-                                className={`text-[9px] font-extrabold px-1.5 py-0.2 rounded ${
-                                  isOnline
-                                    ? 'bg-emerald-100 text-emerald-700'
-                                    : 'bg-rose-100 text-rose-700'
+                                className={`text-[10px] font-bold ${
+                                  isSelected ? 'text-emerald-700' : 'text-gray-400'
                                 }`}
                               >
-                                {isOnline ? '🟢 ክፍት' : '🔴 ዝግ'}
+                                {isSelected ? '✓ Selected' : 'Choose'}
                               </span>
                             </div>
-                            <div className="text-[10px] text-gray-500 font-mono mt-0.5">
-                              {ag.phone} • {ag.recipientName || ag.name}
-                            </div>
-                          </div>
-
-                          <div className="text-right shrink-0 ml-2">
-                            <span
-                              className={`text-[10px] font-bold ${
-                                isSelected
-                                  ? isOnline
-                                    ? 'text-emerald-700'
-                                    : 'text-rose-700'
-                                  : 'text-gray-400'
-                              }`}
-                            >
-                              {isSelected ? '✓ Selected' : 'Choose'}
-                            </span>
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
               </div>
 
               {/* Recipient Account Number with Copy */}
@@ -610,14 +601,14 @@ export default function BankDepositModal({
                 </button>
               </div>
 
-              {/* OFFLINE AGENT WARNING */}
-              {selectedAgent && selectedAgent.isAvailable === false && (
-                <div className="p-3 bg-rose-50 border border-rose-300 rounded-xl text-rose-800 text-xs font-bold animate-fade-in flex items-start gap-2">
-                  <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+              {/* NO AVAILABLE AGENT WARNING */}
+              {(!selectedAgent || selectedAgent.isAvailable === false) && (
+                <div className="p-3 bg-amber-50 border border-amber-300 rounded-xl text-amber-900 text-xs font-bold animate-fade-in flex items-start gap-2">
+                  <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
                   <div>
-                    <div>ይህ ወኪል በአሁኑ ሰዓት ክፍት አይደለም (ይህ ወኪል ክፍያ አይቀበልም)!</div>
-                    <div className="text-[11px] font-normal text-rose-700 mt-0.5">
-                      እባክዎ ክፍያ ለመፈፀም ከላይ ካሉት 🟢 ክፍት ወኪሎች አንዱን ይምረጡ (This agent is currently offline. Please pick an online agent)።
+                    <div>ይቅርታ፣ በአሁኑ ሰዓት ክፍት ወኪል የለም!</div>
+                    <div className="text-[11px] font-normal text-amber-800 mt-0.5">
+                      ክፍያ ለመፈፀም ወኪሎች ክፍት እስኪሆኑ ድረስ ጥቂት ቆይተው እንደገና ይሞክሩ (All agents are currently offline)።
                     </div>
                   </div>
                 </div>
@@ -744,14 +735,14 @@ export default function BankDepositModal({
 
             {/* Bottom CONFIRM button matching Screenshot 4 */}
             <div className="p-3 bg-gray-50 border-t border-gray-200">
-              {selectedAgent && selectedAgent.isAvailable === false ? (
+              {!selectedAgent || selectedAgent.isAvailable === false ? (
                 <button
                   type="button"
                   disabled={true}
-                  className="w-full py-3 bg-rose-700/80 text-white text-xs font-black rounded-xl shadow cursor-not-allowed flex items-center justify-center gap-2 uppercase tracking-wide opacity-90"
+                  className="w-full py-3 bg-gray-400 text-gray-100 text-xs font-black rounded-xl shadow cursor-not-allowed flex items-center justify-center gap-2 uppercase tracking-wide opacity-80"
                 >
-                  <Power className="w-4 h-4 text-rose-200" />
-                  <span>ወኪሉ ዝግ ነው (Agent Offline - Please Choose Online Agent)</span>
+                  <Power className="w-4 h-4 text-gray-200" />
+                  <span>በአሁኑ ሰዓት ክፍት ወኪል የለም (No Available Agent)</span>
                 </button>
               ) : (
                 <button

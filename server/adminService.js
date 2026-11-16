@@ -386,12 +386,12 @@ class AdminService {
   }
 
   getActiveAgents() {
-    return this.agents.filter((a) => a.status === 'active');
+    return this.agents.filter((a) => a.status === 'active' && a.isAvailable !== false);
   }
 
   getPublicAgents() {
     return this.agents
-      .filter((a) => a.status === 'active')
+      .filter((a) => a.status === 'active' && a.isAvailable !== false)
       .map((a) => ({
         id: a.id,
         name: a.name,
@@ -401,8 +401,8 @@ class AdminService {
         recipientName: a.recipientName || a.name,
         telegramUsername: a.telegramUsername,
         commissionRate: a.commissionRate,
-        isAvailable: a.isAvailable !== false,
-        availableNote: a.availableNote || (a.isAvailable !== false ? 'ክፍት ነው (Available)' : 'ተዘግቷል (Offline)'),
+        isAvailable: true,
+        availableNote: a.availableNote || 'ክፍት ነው (Available)',
       }));
   }
 
