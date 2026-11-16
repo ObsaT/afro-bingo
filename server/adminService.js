@@ -152,21 +152,72 @@ class AdminService {
     }
   }
 
+  normalizeReference(code) {
+    if (!code) return '';
+    return String(code).trim().toUpperCase().replace(/[\s_-]+/g, '');
+  }
+
+  // Validate if a reference code has already been used (anti-duplicate)
+  validateReference(referenceCode, userId = null) {
+    if (!referenceCode) {
+      return { valid: true, isDefault: true };
+    }
+    const clean = this.normalizeReference(referenceCode);
+    if (!clean || (clean.startsWith('REF') && clean.length <= 11)) {
+      return { valid: true, isDefault: true };
+    }
+
+    // 1. Check all past and pending transactions in database
+    const existingTx = this.transactions.find((t) => {
+      const txRef = this.normalizeReference(t.referenceCode || t.receiptRef);
+      return txRef && txRef === clean;
+    });
+
+    if (existingTx) {
+      const isSameUser = userId && String(existingTx.userId) === String(userId);
+      const errorMsg = isSameUser
+        ? `⚠️ ይህን የትራንዛክሽን መለያ ቁጥር (${referenceCode}) ቀደም ሲል ልከውታል! እባክዎ አዲስ የከፈሉበትን የኤስኤምኤስ (SMS) መለያ ያስገቡ (You have already submitted this transaction reference).`
+        : `⚠️ ይህ የትራንዛክሽን መለያ ቁጥር (${referenceCode}) ቀደም ሲል ጥቅም ላይ ውሏል! እባክዎ አዲስና ትክክለኛ የኤስኤምኤስ (SMS) መለያ ያስገቡ (This transaction reference has already been used by another transaction).`;
+
+      return {
+        valid: false,
+        duplicate: true,
+        reason: 'DUPLICATE_TRANSACTION',
+        error: errorMsg,
+        referenceCode,
+        status: existingTx.status,
+        txId: existingTx.id,
+      };
+    }
+
+    // 2. Check all matched verified receipts
+    const matchedReceipt = this.verifiedReceipts.find((r) => {
+      const rcptRef = this.normalizeReference(r.referenceCode);
+      return rcptRef && rcptRef === clean && r.matched === true;
+    });
+
+    if (matchedReceipt) {
+      return {
+        valid: false,
+        duplicate: true,
+        reason: 'DUPLICATE_RECEIPT',
+        error: `⚠️ ይህ የትራንዛክሽን መለያ ቁጥር (${referenceCode}) ቀደም ሲል ለሌላ ተቀማጭ ተረጋግጧል (This receipt has already been matched and used).`,
+        referenceCode,
+      };
+    }
+
+    return {
+      valid: true,
+      duplicate: false,
+      referenceCode,
+      cleanReference: clean,
+    };
+  }
+
   // Anti-fraud: Check if this transaction reference number was already recorded in any transaction
-  isReferenceUsed(referenceCode) {
-    if (!referenceCode) return false;
-    const clean = referenceCode.trim().toUpperCase();
-    if (!clean || (clean.startsWith('REF-') && clean.length <= 11)) return false;
-    const inTransactions = this.transactions.some(
-      (t) =>
-        t.referenceCode &&
-        t.referenceCode.trim().toUpperCase() === clean
-    );
-    if (inTransactions) return true;
-    const inReceipts = this.verifiedReceipts.some(
-      (r) => r.referenceCode === clean && r.matched === true
-    );
-    return inReceipts;
+  isReferenceUsed(referenceCode, userId = null) {
+    const val = this.validateReference(referenceCode, userId);
+    return !val.valid;
   }
 
   // Ingest incoming SMS from Agent phone (Telebirr / CBE) & Auto-match pending deposit

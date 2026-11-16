@@ -420,9 +420,27 @@ app.post('/api/admin/banks/:id/toggle', requireAdmin, (req, res) => {
   res.json(result);
 });
 
+// Validate transaction reference code for duplicates (real-time validation)
+app.get('/api/wallet/validate-reference', (req, res) => {
+  const { ref, userId } = req.query;
+  if (!ref || !ref.trim()) {
+    return res.json({ valid: true, duplicate: false });
+  }
+
+  const parsed = parseEthiopianSms(ref);
+  const codeToCheck = parsed.referenceCode || ref.trim();
+
+  const validation = adminService.validateReference(codeToCheck, userId);
+  return res.json({
+    ...validation,
+    referenceCode: codeToCheck,
+    parsed,
+  });
+});
+
 // Player confirms deposit (Melbet style: copies ID & generates Telegram dispatch to Agent)
 app.post('/api/wallet/deposit-request', (req, res) => {
-  const { userId, amount, bankId, agentId: reqAgentId, playerPhone, receiptRef, receiptImage } = req.body;
+  const { userId, amount, bankId, agentId: reqAgentId, playerPhone, receiptRef, rawSms, receiptImage } = req.body;
   const user = gameEngine.users.get(userId) || { id: userId, username: 'Player_' + userId };
   const bank = bankService.banks.find((b) => b.id === bankId) || bankService.banks[0];
 
@@ -443,8 +461,8 @@ app.post('/api/wallet/deposit-request', (req, res) => {
   }
 
   // Smart Reference Parsing (auto-extracts reference ID if full SMS was pasted)
-  let refCode = (receiptRef || '').trim();
-  const parsedRef = parseEthiopianSms(refCode);
+  let refCode = (receiptRef || rawSms || '').trim();
+  const parsedRef = parseEthiopianSms(refCode || rawSms || '');
   if (parsedRef.referenceCode) {
     refCode = parsedRef.referenceCode.toUpperCase();
   } else if (!refCode) {
@@ -454,9 +472,12 @@ app.post('/api/wallet/deposit-request', (req, res) => {
   }
 
   // --- ANTI-FRAUD: Prevent Duplicate Transaction Reference Numbers ---
-  if (adminService.isReferenceUsed(refCode)) {
+  const refValidation = adminService.validateReference(refCode, user.id);
+  if (!refValidation.valid) {
     return res.status(400).json({
-      error: `⚠️ ይህ የትራንዛክሽን መለያ ቁጥር (${refCode}) ቀደም ሲል ጥቅም ላይ ውሏል! እባክዎ አዲስና ትክክለኛ የኤስኤምኤስ (SMS) መለያ ያስገቡ (This transaction reference has already been used).`,
+      error: refValidation.error || `⚠️ ይህ የትራንዛክሽን መለያ ቁጥር (${refCode}) ቀደም ሲል ጥቅም ላይ ውሏል! እባክዎ አዲስና ትክክለኛ የኤስኤምኤስ (SMS) መለያ ያስገቡ (This transaction reference has already been used).`,
+      duplicate: true,
+      referenceCode: refCode,
     });
   }
 

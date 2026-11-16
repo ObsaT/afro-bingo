@@ -41,6 +41,8 @@ export default function BankDepositModal({
   const [rawSmsText, setRawSmsText] = useState('');
   const [smsDetected, setSmsDetected] = useState(null);
   const [showSmsPasteBox, setShowSmsPasteBox] = useState(false);
+  const [validatingRef, setValidatingRef] = useState(false);
+  const [refValidation, setRefValidation] = useState(null); // { valid: boolean, duplicate: boolean, message: string }
   const [submitting, setSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [feedback, setFeedback] = useState(null);
@@ -119,6 +121,7 @@ export default function BankDepositModal({
     setReceiptRef('');
     setRawSmsText('');
     setSmsDetected(null);
+    setRefValidation(null);
     setShowSmsPasteBox(false);
     setFeedback(null);
     setErrors({});
@@ -134,6 +137,45 @@ export default function BankDepositModal({
     }
     setSelectedAgent(bestAgent || null);
   };
+
+  // Real-time server duplicate reference validation
+  useEffect(() => {
+    const code = (receiptRef || '').trim();
+    if (!code || code.length < 5 || code.startsWith('REF-')) {
+      setRefValidation(null);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setValidatingRef(true);
+      try {
+        const res = await fetch(
+          `/api/wallet/validate-reference?ref=${encodeURIComponent(code)}&userId=${encodeURIComponent(playerId)}`
+        );
+        const data = await res.json();
+        if (data.duplicate) {
+          setRefValidation({ valid: false, duplicate: true, message: data.error });
+          setErrors((prev) => ({ ...prev, receiptRef: data.error }));
+        } else {
+          setRefValidation({
+            valid: true,
+            duplicate: false,
+            message: '✓ ትክክለኛ አዲስ መለያ ቁጥር (Unique Valid Reference)',
+          });
+          setErrors((prev) => {
+            const next = { ...prev };
+            delete next.receiptRef;
+            return next;
+          });
+        }
+      } catch (err) {
+      } finally {
+        setValidatingRef(false);
+      }
+    }, 350);
+
+    return () => clearTimeout(timer);
+  }, [receiptRef, playerId]);
 
   // Smart SMS Handler: extracts Reference Code, Amount, and Phone Number from message
   const handleSmsInput = (inputVal) => {
@@ -197,6 +239,11 @@ export default function BankDepositModal({
       if (!bankAccRegex.test(cleanPhone)) {
         errs.phone = 'ትክክለኛ የባንክ ሂሳብ ቁጥር ያስገቡ (ከ8 እስከ 18 ድጅት ቁጥር)';
       }
+    }
+
+    // 3. Receipt Reference Duplicate Check
+    if (refValidation && refValidation.duplicate) {
+      errs.receiptRef = refValidation.message || 'ይህ የትራንዛክሽን መለያ ቁጥር ቀደም ሲል ጥቅም ላይ ውሏል';
     }
 
     setErrors(errs);
@@ -812,7 +859,28 @@ export default function BankDepositModal({
                   </div>
                 )}
 
-                {errors.receiptRef && (
+                {/* Real-Time Duplicate Validation Status */}
+                {validatingRef && (
+                  <div className="mt-1 text-[10px] text-gray-500 font-mono flex items-center gap-1 animate-pulse">
+                    <span>⏳ መለያውን በመመርመር ላይ (Checking duplicate status...)...</span>
+                  </div>
+                )}
+
+                {refValidation?.duplicate && (
+                  <div className="mt-1.5 p-2 bg-red-50 border border-red-300 rounded-lg text-red-800 text-[11px] font-bold flex items-start gap-1.5 animate-fade-in">
+                    <AlertTriangle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+                    <span>{refValidation.message}</span>
+                  </div>
+                )}
+
+                {refValidation && !refValidation.duplicate && !errors.receiptRef && receiptRef.length >= 6 && (
+                  <div className="mt-1 text-[10px] text-emerald-700 font-bold flex items-center gap-1 animate-fade-in">
+                    <Check className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>ይህ የትራንዛክሽን መለያ ትክክለኛና አዲስ ነው (Valid unique reference)</span>
+                  </div>
+                )}
+
+                {errors.receiptRef && !refValidation?.duplicate && (
                   <div className="text-[11px] text-red-600 font-semibold mt-1 flex items-center gap-1 animate-fade-in">
                     <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
                     <span>{errors.receiptRef}</span>
@@ -844,10 +912,19 @@ export default function BankDepositModal({
                   <Power className="w-4 h-4 text-gray-200" />
                   <span>በአሁኑ ሰዓት ክፍት ወኪል የለም (No Available Agent)</span>
                 </button>
+              ) : refValidation?.duplicate ? (
+                <button
+                  type="button"
+                  disabled={true}
+                  className="w-full py-3 bg-red-600 text-white text-xs font-black rounded-xl shadow cursor-not-allowed flex items-center justify-center gap-2 uppercase tracking-wide opacity-90"
+                >
+                  <AlertTriangle className="w-4 h-4 text-white" />
+                  <span>⚠️ የተባዛ መለያ (Duplicate Reference Code)</span>
+                </button>
               ) : (
                 <button
                   onClick={handleConfirm}
-                  disabled={submitting || isSuccess}
+                  disabled={submitting || isSuccess || validatingRef}
                   className={`w-full py-3 text-white text-sm font-black rounded-xl shadow-lg transition active:scale-95 uppercase tracking-wider flex items-center justify-center gap-2 ${
                     isSuccess ? 'bg-[#10b981]' : 'bg-[#2e7d32] hover:bg-[#256628]'
                   }`}
