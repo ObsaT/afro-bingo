@@ -17,6 +17,8 @@ import {
   TrendingUp,
   AlertCircle,
   BellRing,
+  Power,
+  Radio,
 } from 'lucide-react';
 
 export default function AgentPortal({ onExit }) {
@@ -46,10 +48,44 @@ export default function AgentPortal({ onExit }) {
   const [approvingWithdrawal, setApprovingWithdrawal] = useState(null);
   const [txFee, setTxFee] = useState('0');
   const [txNotes, setTxNotes] = useState('');
+  const [togglingAvailability, setTogglingAvailability] = useState(false);
 
   const showNotification = (msg) => {
     setFeedback(msg);
     setTimeout(() => setFeedback(null), 4000);
+  };
+
+  // Toggle Agent Online / Offline Availability
+  const handleToggleAvailability = async () => {
+    if (!agent) return;
+    setTogglingAvailability(true);
+    const newStatus = agent.isAvailable === false ? true : false;
+    try {
+      const res = await fetch(`/api/agent/${agent.id}/toggle-availability`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isAvailable: newStatus }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setAgent((prev) => ({
+          ...prev,
+          isAvailable: newStatus,
+          availableNote: data.agent.availableNote,
+        }));
+        showNotification(
+          newStatus
+            ? '🟢 እርስዎ አሁን ክፍት (Online) ነዎት! ተጫዋቾች ተቀማጭ መላክ ይችላሉ።'
+            : '🔴 እርስዎ አሁን ተዘግተዋል (Offline)! ተጫዋቾች ተቀማጭ መላክ አይችሉም።'
+        );
+      } else {
+        alert(data.error || 'Failed to update availability');
+      }
+    } catch (err) {
+      alert('Error updating availability');
+    } finally {
+      setTogglingAvailability(false);
+    }
   };
 
   // Agent Login
@@ -450,6 +486,74 @@ export default function AgentPortal({ onExit }) {
           <span>{feedback}</span>
         </div>
       )}
+
+      {/* Real-time Agent Availability Toggle Banner */}
+      <div
+        className={`p-3 border-b transition-colors ${
+          agent.isAvailable !== false
+            ? 'bg-gradient-to-r from-emerald-950/70 via-[#132822] to-[#120a2a] border-emerald-500/30'
+            : 'bg-gradient-to-r from-rose-950/70 via-[#2d121c] to-[#120a2a] border-rose-500/30'
+        }`}
+      >
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div
+              className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 shadow-lg ${
+                agent.isAvailable !== false
+                  ? 'bg-emerald-500 text-black shadow-emerald-500/30 animate-pulse'
+                  : 'bg-rose-600 text-white shadow-rose-600/30'
+              }`}
+            >
+              {agent.isAvailable !== false ? (
+                <Radio className="w-5 h-5" />
+              ) : (
+                <Power className="w-5 h-5" />
+              )}
+            </div>
+
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-black text-white tracking-wide">
+                  {agent.isAvailable !== false ? 'ONLINE & ACCEPTING DEPOSITS' : 'OFFLINE (PAUSED)'}
+                </span>
+                <span
+                  className={`text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-full ${
+                    agent.isAvailable !== false
+                      ? 'bg-emerald-400/20 text-emerald-300 border border-emerald-400/30'
+                      : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+                  }`}
+                >
+                  {agent.isAvailable !== false ? 'ክፍት ነው' : 'ተዘግቷል'}
+                </span>
+              </div>
+              <p className="text-[10px] text-gray-300 mt-0.5 truncate">
+                {agent.isAvailable !== false
+                  ? 'ተጫዋቾች አሁን ወደ ሂሳብዎ ተቀማጭ ማድረግ ይችላሉ (Players can pay)'
+                  : 'ተጫዋቾች ክፍያ መላክ አይችሉም (New deposits are blocked)'}
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={handleToggleAvailability}
+            disabled={togglingAvailability}
+            className={`px-3 py-2 rounded-xl text-xs font-extrabold shadow-md transition active:scale-95 shrink-0 flex items-center gap-1.5 ${
+              agent.isAvailable !== false
+                ? 'bg-rose-600/90 hover:bg-rose-500 text-white border border-rose-400/30'
+                : 'bg-emerald-500 hover:bg-emerald-400 text-black border border-emerald-300/50'
+            }`}
+          >
+            <Power className="w-3.5 h-3.5" />
+            <span>
+              {togglingAvailability
+                ? '...'
+                : agent.isAvailable !== false
+                ? 'Go Offline (እረፍት)'
+                : 'Go Online (ክፍት)'}
+            </span>
+          </button>
+        </div>
+      </div>
 
       {/* Float & Commission KPI Cards */}
       <div className="p-3 grid grid-cols-2 gap-2.5 bg-[#140c2e] border-b border-[#251950]">

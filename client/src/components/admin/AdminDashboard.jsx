@@ -61,10 +61,12 @@ export default function AdminDashboard({ onExit }) {
     phone: '',
     bankName: 'Telebirr & CBE',
     accountNumber: '',
+    recipientName: '',
     telegramUsername: '',
     commissionRate: '7',
     initialFloat: '2000',
     pin: '1234',
+    isAvailable: true,
   });
 
   const [showAgentFloatModal, setShowAgentFloatModal] = useState(false);
@@ -468,7 +470,7 @@ export default function AdminDashboard({ onExit }) {
     } catch (err) {}
   };
 
-  // Toggle Agent Status
+  // Toggle Agent Status (Active / Inactive)
   const handleToggleAgent = async (agentId) => {
     try {
       const res = await fetch(`/api/admin/agents/${agentId}/toggle`, {
@@ -477,10 +479,35 @@ export default function AdminDashboard({ onExit }) {
       });
       const data = await res.json();
       if (data.success) {
-        showNotification('Agent status updated!');
+        showNotification('Agent active status updated!');
         fetchAgents();
       }
     } catch (err) {}
+  };
+
+  // Toggle Agent Availability (Online / Offline / Accepting Deposits)
+  const handleToggleAgentAvailability = async (agentId, currentStatus) => {
+    const newStatus = currentStatus === false ? true : false;
+    try {
+      const res = await fetch(`/api/admin/agents/${agentId}/toggle-availability`, {
+        method: 'POST',
+        headers: authHeaders,
+        body: JSON.stringify({ isAvailable: newStatus }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        showNotification(
+          newStatus
+            ? '🟢 Agent marked as AVAILABLE (Online & accepting deposits)!'
+            : '🔴 Agent marked as UNAVAILABLE (Offline - player deposits paused)!'
+        );
+        fetchAgents();
+      } else {
+        alert(data.error || 'Failed to update availability');
+      }
+    } catch (err) {
+      alert('Error updating agent availability');
+    }
   };
 
   // Toggle Simulation ON / OFF
@@ -1214,9 +1241,26 @@ export default function AdminDashboard({ onExit }) {
                         >
                           {ag.status}
                         </span>
+                        <span
+                          className={`text-[9px] px-2 py-0.5 rounded-full font-bold uppercase flex items-center gap-1 ${
+                            ag.isAvailable !== false
+                              ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                              : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+                          }`}
+                        >
+                          <span
+                            className={`w-1.5 h-1.5 rounded-full ${
+                              ag.isAvailable !== false ? 'bg-emerald-400' : 'bg-rose-400'
+                            }`}
+                          />
+                          <span>{ag.isAvailable !== false ? '🟢 Available' : '🔴 Offline'}</span>
+                        </span>
                       </div>
                       <div className="text-[10px] text-gray-300 mt-0.5">
                         📱 Phone: <span className="font-mono text-yellow-300 font-bold">{ag.phone}</span>
+                        {ag.recipientName && (
+                          <span className="text-gray-400 ml-2">({ag.recipientName})</span>
+                        )}
                       </div>
                       <div className="text-[10px] text-gray-300">
                         🏦 {ag.bankName}: <span className="font-mono text-white">{ag.accountNumber}</span>
@@ -1252,6 +1296,19 @@ export default function AdminDashboard({ onExit }) {
 
                     <div className="flex items-center gap-2">
                       <button
+                        onClick={() => handleToggleAgentAvailability(ag.id, ag.isAvailable)}
+                        className={`px-2.5 py-1 font-bold rounded-lg border transition flex items-center gap-1 ${
+                          ag.isAvailable !== false
+                            ? 'bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 border-rose-500/30'
+                            : 'bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border-emerald-500/30'
+                        }`}
+                        title="Toggle availability to receive player deposits"
+                      >
+                        <Power className="w-3 h-3" />
+                        <span>{ag.isAvailable !== false ? 'Set Offline (ዝጋ)' : 'Make Available (ክፈት)'}</span>
+                      </button>
+
+                      <button
                         onClick={() => {
                           setEditingAgent({ ...ag });
                           setShowEditAgentModal(true);
@@ -1259,7 +1316,7 @@ export default function AdminDashboard({ onExit }) {
                         className="px-2.5 py-1 bg-[#251950] hover:bg-[#342470] text-cyan-300 font-bold rounded-lg border border-[#3b287d] transition flex items-center gap-1"
                       >
                         <Edit2 className="w-3 h-3" />
-                        <span>Edit Details</span>
+                        <span>Edit</span>
                       </button>
 
                       <button
@@ -1269,7 +1326,7 @@ export default function AdminDashboard({ onExit }) {
                         }}
                         className="px-2.5 py-1 bg-green-600/30 hover:bg-green-600/40 text-green-300 font-bold rounded-lg border border-green-500/40 transition active:scale-95"
                       >
-                        + Add Float
+                        + Float
                       </button>
 
                       <button
@@ -2141,9 +2198,20 @@ export default function AdminDashboard({ onExit }) {
                 <input
                   type="text"
                   required
-                  placeholder="e.g. 1000192837461"
+                  placeholder="e.g. 1000192837461 or 0911..."
                   value={newAgent.accountNumber}
                   onChange={(e) => setNewAgent({ ...newAgent, accountNumber: e.target.value })}
+                  className="w-full px-3 py-1.5 bg-[#251950] border border-[#3c2980] rounded-xl text-xs text-white mt-0.5"
+                />
+              </div>
+
+              <div>
+                <label className="text-[10px] text-gray-400 uppercase font-semibold">Account Recipient Name (የባለቤት ስም)</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Abel Haftom Gebremichael"
+                  value={newAgent.recipientName || ''}
+                  onChange={(e) => setNewAgent({ ...newAgent, recipientName: e.target.value })}
                   className="w-full px-3 py-1.5 bg-[#251950] border border-[#3c2980] rounded-xl text-xs text-white mt-0.5"
                 />
               </div>
@@ -2261,6 +2329,40 @@ export default function AdminDashboard({ onExit }) {
                   onChange={(e) => setEditingAgent({ ...editingAgent, accountNumber: e.target.value })}
                   className="w-full px-3 py-1.5 bg-[#251950] border border-[#3c2980] rounded-xl text-xs text-white mt-0.5"
                 />
+              </div>
+
+              <div>
+                <label className="text-[10px] text-gray-400 uppercase font-semibold">Account Recipient Name (የባለቤት ስም)</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Abel Haftom Gebremichael"
+                  value={editingAgent.recipientName || ''}
+                  onChange={(e) => setEditingAgent({ ...editingAgent, recipientName: e.target.value })}
+                  className="w-full px-3 py-1.5 bg-[#251950] border border-[#3c2980] rounded-xl text-xs text-white mt-0.5"
+                />
+              </div>
+
+              <div className="flex items-center justify-between p-2.5 bg-[#251950] rounded-xl border border-[#3c2980]">
+                <div>
+                  <div className="text-xs font-bold text-white">Accept Player Deposits (ክፍት ነው)?</div>
+                  <div className="text-[10px] text-gray-400">Players can only deposit when this is ON</div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setEditingAgent({
+                      ...editingAgent,
+                      isAvailable: editingAgent.isAvailable === false ? true : false,
+                    })
+                  }
+                  className={`px-3 py-1 rounded-lg text-xs font-extrabold transition ${
+                    editingAgent.isAvailable !== false
+                      ? 'bg-emerald-500 text-black'
+                      : 'bg-rose-600 text-white'
+                  }`}
+                >
+                  {editingAgent.isAvailable !== false ? '🟢 Available' : '🔴 Offline'}
+                </button>
               </div>
 
               <div className="grid grid-cols-2 gap-2">

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { io } from 'socket.io-client';
 import {
   X,
   Copy,
@@ -11,6 +12,10 @@ import {
   ChevronUp,
   MessageCircle,
   CheckCircle2,
+  Users,
+  Power,
+  Radio,
+  ShieldCheck,
 } from 'lucide-react';
 
 export default function BankDepositModal({
@@ -19,7 +24,9 @@ export default function BankDepositModal({
   onSuccess,
 }) {
   const [banks, setBanks] = useState([]);
+  const [agents, setAgents] = useState([]);
   const [selectedBank, setSelectedBank] = useState(null);
+  const [selectedAgent, setSelectedAgent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [copiedField, setCopiedField] = useState('');
   const [showSupport, setShowSupport] = useState(false);
@@ -35,7 +42,7 @@ export default function BankDepositModal({
 
   const playerId = user?.id || '';
 
-  // Fetch Public Banks
+  // Fetch Public Banks and Public Agents
   useEffect(() => {
     fetch('/api/banks/public')
       .then((r) => r.json())
@@ -44,12 +51,57 @@ export default function BankDepositModal({
           setBanks(data.banks);
         }
       })
+      .catch(() => {});
+
+    fetch('/api/agents/public')
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.agents) {
+          setAgents(data.agents);
+        }
+      })
       .catch(() => {})
       .finally(() => setLoading(false));
+
+    // Listen to real-time agent availability changes via Socket.IO
+    const socket = io('/', { transports: ['websocket', 'polling'] });
+    socket.on('agent_availability_changed', (updated) => {
+      setAgents((prev) =>
+        prev.map((a) =>
+          a.id === updated.agentId
+            ? { ...a, isAvailable: updated.isAvailable, availableNote: updated.availableNote }
+            : a
+        )
+      );
+      setSelectedAgent((prev) => {
+        if (prev && prev.id === updated.agentId) {
+          return {
+            ...prev,
+            isAvailable: updated.isAvailable,
+            availableNote: updated.availableNote,
+          };
+        }
+        return prev;
+      });
+    });
+
+    socket.on('agents_updated', () => {
+      fetch('/api/agents/public')
+        .then((r) => r.json())
+        .then((data) => {
+          if (data.agents) setAgents(data.agents);
+        })
+        .catch(() => {});
+    });
+
+    return () => {
+      socket.disconnect();
+    };
   }, []);
 
   const copyToClipboard = (text, fieldName) => {
-    navigator.clipboard?.writeText(text);
+    if (!text) return;
+    navigator.clipboard?.writeText(String(text));
     setCopiedField(fieldName);
     setTimeout(() => setCopiedField(''), 2000);
   };
@@ -61,6 +113,23 @@ export default function BankDepositModal({
     setReceiptRef('');
     setFeedback(null);
     setErrors({});
+
+    // Pick best available agent for this bank or first available agent
+    let bestAgent = agents.find(
+      (a) =>
+        a.isAvailable !== false &&
+        (a.telegramUsername?.toLowerCase() === bank.agentTelegram?.toLowerCase() || a.id === bank.agentId)
+    );
+    if (!bestAgent) {
+      bestAgent = agents.find((a) => a.isAvailable !== false);
+    }
+    if (!bestAgent) {
+      bestAgent =
+        agents.find(
+          (a) => a.telegramUsername?.toLowerCase() === bank.agentTelegram?.toLowerCase() || a.id === bank.agentId
+        ) || agents[0];
+    }
+    setSelectedAgent(bestAgent || null);
   };
 
   // Validation function
@@ -114,6 +183,13 @@ export default function BankDepositModal({
       return;
     }
 
+    if (selectedAgent && selectedAgent.isAvailable === false) {
+      alert(
+        'ይቅርታ፣ ይህ ወኪል በአሁኑ ሰዓት ክፍት አይደለም (ይህ ወኪል ክፍያ አይቀበልም)። እባክዎ ክፍት የሆነ ሌላ ወኪል ይምረጡ (Selected agent is currently offline).'
+      );
+      return;
+    }
+
     setSubmitting(true);
 
     try {
@@ -125,6 +201,7 @@ export default function BankDepositModal({
           username: user?.username || 'AfroPlayer',
           amount: parseFloat(amount),
           bankId: selectedBank.id,
+          agentId: selectedAgent ? selectedAgent.id : undefined,
           playerPhone: playerPhone.trim(),
           receiptRef: receiptRef.trim() || `REF-${Math.floor(100000 + Math.random() * 900000)}`,
         }),
@@ -205,10 +282,21 @@ export default function BankDepositModal({
         </div>
 
         {/* Types of payment systems pill */}
-        <div>
+        <div className="flex items-center justify-between">
           <span className="inline-block px-3 py-1 bg-[#2e5b3c] text-white text-[11px] font-bold rounded">
             Types of payment systems
           </span>
+
+          <div className="flex items-center gap-1.5 text-[10px] font-bold">
+            <span className="text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+              🟢 {agents.filter((a) => a.isAvailable !== false).length} Agents Online
+            </span>
+            {agents.filter((a) => a.isAvailable === false).length > 0 && (
+              <span className="text-rose-700 bg-rose-50 px-2 py-0.5 rounded-full border border-rose-200">
+                🔴 {agents.filter((a) => a.isAvailable === false).length} Offline
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Support Box matching Screenshot 1 */}
@@ -380,18 +468,110 @@ export default function BankDepositModal({
                 Before creating a request, transfer funds within 10 minutes using the payment details provided below.
               </div>
 
+              {/* Official Cashier Agent Selection & Availability */}
+              <div className="bg-gray-50 p-3 rounded-2xl border border-gray-200 flex flex-col gap-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <Users className="w-4 h-4 text-gray-700" />
+                    <span className="text-[11px] font-black text-gray-800 uppercase tracking-wide">
+                      ክፍያ የሚቀበለው ወኪል (Cashier Agent):
+                    </span>
+                  </div>
+                  {selectedAgent && (
+                    <span
+                      className={`text-[9px] px-2 py-0.5 rounded-full font-black uppercase flex items-center gap-1 ${
+                        selectedAgent.isAvailable !== false
+                          ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                          : 'bg-rose-100 text-rose-800 border border-rose-300 animate-pulse'
+                      }`}
+                    >
+                      <span
+                        className={`w-1.5 h-1.5 rounded-full ${
+                          selectedAgent.isAvailable !== false ? 'bg-emerald-600' : 'bg-rose-600'
+                        }`}
+                      />
+                      <span>{selectedAgent.isAvailable !== false ? '🟢 ክፍት ነው' : '🔴 ተዘግቷል'}</span>
+                    </span>
+                  )}
+                </div>
+
+                {/* Multiple Agents Selector Pills */}
+                {agents.length > 0 && (
+                  <div className="flex flex-col gap-1.5 max-h-36 overflow-y-auto pr-0.5">
+                    {agents.map((ag) => {
+                      const isOnline = ag.isAvailable !== false;
+                      const isSelected = selectedAgent?.id === ag.id;
+                      return (
+                        <button
+                          key={ag.id}
+                          type="button"
+                          onClick={() => setSelectedAgent(ag)}
+                          className={`p-2 rounded-xl text-left border transition flex items-center justify-between ${
+                            isSelected
+                              ? isOnline
+                                ? 'bg-emerald-50 border-emerald-500 ring-2 ring-emerald-400 shadow-sm'
+                                : 'bg-rose-50 border-rose-500 ring-2 ring-rose-400 shadow-sm'
+                              : isOnline
+                              ? 'bg-white border-gray-200 hover:border-emerald-300 hover:bg-emerald-50/40'
+                              : 'bg-gray-100 border-gray-200 opacity-60 hover:opacity-90'
+                          }`}
+                        >
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-bold text-xs text-gray-900 truncate">{ag.name}</span>
+                              <span
+                                className={`text-[9px] font-extrabold px-1.5 py-0.2 rounded ${
+                                  isOnline
+                                    ? 'bg-emerald-100 text-emerald-700'
+                                    : 'bg-rose-100 text-rose-700'
+                                }`}
+                              >
+                                {isOnline ? '🟢 ክፍት' : '🔴 ዝግ'}
+                              </span>
+                            </div>
+                            <div className="text-[10px] text-gray-500 font-mono mt-0.5">
+                              {ag.phone} • {ag.recipientName || ag.name}
+                            </div>
+                          </div>
+
+                          <div className="text-right shrink-0 ml-2">
+                            <span
+                              className={`text-[10px] font-bold ${
+                                isSelected
+                                  ? isOnline
+                                    ? 'text-emerald-700'
+                                    : 'text-rose-700'
+                                  : 'text-gray-400'
+                              }`}
+                            >
+                              {isSelected ? '✓ Selected' : 'Choose'}
+                            </span>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
               {/* Recipient Account Number with Copy */}
               <div className="flex items-center justify-between bg-gray-50 p-2.5 rounded-xl border border-gray-200">
                 <div>
                   <div className="text-[10px] text-gray-500 font-bold">
-                    {selectedBank.name} ሂሳብ ቁጥር (Account):
+                    {selectedAgent?.name || selectedBank.name} ሂሳብ ቁጥር (Account):
                   </div>
                   <div className="text-sm font-black font-mono text-gray-900 mt-0.5">
-                    {selectedBank.accountNumber}
+                    {selectedAgent?.accountNumber || selectedBank.accountNumber}
                   </div>
                 </div>
                 <button
-                  onClick={() => copyToClipboard(selectedBank.accountNumber, 'accNumber')}
+                  type="button"
+                  onClick={() =>
+                    copyToClipboard(
+                      selectedAgent?.accountNumber || selectedBank.accountNumber,
+                      'accNumber'
+                    )
+                  }
                   className="p-1.5 bg-green-50 hover:bg-green-100 text-green-700 rounded-lg transition active:scale-95 flex items-center gap-1 font-bold text-[11px]"
                 >
                   {copiedField === 'accNumber' ? (
@@ -408,11 +588,17 @@ export default function BankDepositModal({
                 <div>
                   <div className="text-[10px] text-gray-500 font-bold">የተቀባይ ስም (Recipient Name):</div>
                   <div className="text-xs font-black text-gray-900 mt-0.5">
-                    {selectedBank.recipientName}
+                    {selectedAgent?.recipientName || selectedBank.recipientName}
                   </div>
                 </div>
                 <button
-                  onClick={() => copyToClipboard(selectedBank.recipientName, 'recName')}
+                  type="button"
+                  onClick={() =>
+                    copyToClipboard(
+                      selectedAgent?.recipientName || selectedBank.recipientName,
+                      'recName'
+                    )
+                  }
                   className="p-1.5 bg-green-50 hover:bg-green-100 text-green-700 rounded-lg transition active:scale-95 flex items-center gap-1 font-bold text-[11px]"
                 >
                   {copiedField === 'recName' ? (
@@ -423,6 +609,19 @@ export default function BankDepositModal({
                   <span>{copiedField === 'recName' ? 'Copied' : 'Copy'}</span>
                 </button>
               </div>
+
+              {/* OFFLINE AGENT WARNING */}
+              {selectedAgent && selectedAgent.isAvailable === false && (
+                <div className="p-3 bg-rose-50 border border-rose-300 rounded-xl text-rose-800 text-xs font-bold animate-fade-in flex items-start gap-2">
+                  <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                  <div>
+                    <div>ይህ ወኪል በአሁኑ ሰዓት ክፍት አይደለም (ይህ ወኪል ክፍያ አይቀበልም)!</div>
+                    <div className="text-[11px] font-normal text-rose-700 mt-0.5">
+                      እባክዎ ክፍያ ለመፈፀም ከላይ ካሉት 🟢 ክፍት ወኪሎች አንዱን ይምረጡ (This agent is currently offline. Please pick an online agent)።
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Amount Field + Pills */}
               <div>
@@ -545,21 +744,32 @@ export default function BankDepositModal({
 
             {/* Bottom CONFIRM button matching Screenshot 4 */}
             <div className="p-3 bg-gray-50 border-t border-gray-200">
-              <button
-                onClick={handleConfirm}
-                disabled={submitting || isSuccess}
-                className={`w-full py-3 text-white text-sm font-black rounded-xl shadow-lg transition active:scale-95 uppercase tracking-wider flex items-center justify-center gap-2 ${
-                  isSuccess ? 'bg-[#10b981]' : 'bg-[#2e7d32] hover:bg-[#256628]'
-                }`}
-              >
-                {submitting ? (
-                  <span>⏳ በመላክ ላይ... (Sending...)</span>
-                ) : isSuccess ? (
-                  <span>✅ በተሳካ ሁኔታ ተልኳል (Sent Successfully)!</span>
-                ) : (
-                  <span>CONFIRM</span>
-                )}
-              </button>
+              {selectedAgent && selectedAgent.isAvailable === false ? (
+                <button
+                  type="button"
+                  disabled={true}
+                  className="w-full py-3 bg-rose-700/80 text-white text-xs font-black rounded-xl shadow cursor-not-allowed flex items-center justify-center gap-2 uppercase tracking-wide opacity-90"
+                >
+                  <Power className="w-4 h-4 text-rose-200" />
+                  <span>ወኪሉ ዝግ ነው (Agent Offline - Please Choose Online Agent)</span>
+                </button>
+              ) : (
+                <button
+                  onClick={handleConfirm}
+                  disabled={submitting || isSuccess}
+                  className={`w-full py-3 text-white text-sm font-black rounded-xl shadow-lg transition active:scale-95 uppercase tracking-wider flex items-center justify-center gap-2 ${
+                    isSuccess ? 'bg-[#10b981]' : 'bg-[#2e7d32] hover:bg-[#256628]'
+                  }`}
+                >
+                  {submitting ? (
+                    <span>⏳ በመላክ ላይ... (Sending...)</span>
+                  ) : isSuccess ? (
+                    <span>✅ በተሳካ ሁኔታ ተልኳል (Sent Successfully)!</span>
+                  ) : (
+                    <span>CONFIRM DEPOSIT (ተቀማጩን ላክ)</span>
+                  )}
+                </button>
+              )}
             </div>
           </div>
         </div>

@@ -350,14 +350,19 @@ ${listText}
       if (activeAgents.length > 0) {
         agentListText = activeAgents
           .map((ag, i) => {
-            return `${i + 1}. 👤 *${ag.name}*
+            const availStatus =
+              ag.isAvailable !== false
+                ? '🟢 *ክፍት ነው (Available)*'
+                : '🔴 *ተዘግቷል (Offline - አይቀበልም)*';
+            return `${i + 1}. 👤 *${ag.name}* [${availStatus}]
    📱 *ስልክ:* \`${ag.phone}\`
-   🏦 *ባንክ:* ${ag.bankName} (\`${ag.accountNumber}\`)
+   🏦 *ባንክ/ቴሌብር:* ${ag.bankName} (\`${ag.accountNumber}\`)
+   👤 *የሂሳብ ስም:* ${ag.recipientName || ag.name}
    💬 *ቴሌግራም:* @${ag.telegramUsername}`;
           })
           .join('\n\n');
       } else {
-        agentListText = '• Bole Medhanealem Agent (@bole_afro_agent) - 0911445566\n• Piazza Central Agent (@piazza_bingo_agent) - 0922556677';
+        agentListText = '• Bole Medhanealem Agent (@bole_afro_agent) - 0911445566 [🟢 Available]\n• Megenagna Cashier Agent (@afro_cashier_agent) - 0911223344 [🟢 Available]';
       }
 
       const agentMsg = `🤝 *የተረጋገጡ የቢንጎ ወኪሎች (Official Bingo Agents):*
@@ -366,6 +371,7 @@ ${listText}
 ${agentListText}
 
 ━━━━━━━━━━━━━━━━━━━━
+⚠️ *ማስታወሻ፦* እባክዎ ክፍት (🟢 Available) ለሆኑ ወኪሎች ብቻ ክፍያ ያስተላልፉ።
 የወኪል ፖርታል ለመክፈት ከታች ያለውን አዝራር ይጫኑ።`;
 
       const keyboard = new InlineKeyboard()

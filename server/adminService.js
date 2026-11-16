@@ -385,6 +385,10 @@ class AdminService {
     return this.agents;
   }
 
+  getActiveAgents() {
+    return this.agents.filter((a) => a.status === 'active');
+  }
+
   getPublicAgents() {
     return this.agents
       .filter((a) => a.status === 'active')
@@ -394,8 +398,11 @@ class AdminService {
         phone: a.phone,
         bankName: a.bankName,
         accountNumber: a.accountNumber,
+        recipientName: a.recipientName || a.name,
         telegramUsername: a.telegramUsername,
         commissionRate: a.commissionRate,
+        isAvailable: a.isAvailable !== false,
+        availableNote: a.availableNote || (a.isAvailable !== false ? 'ክፍት ነው (Available)' : 'ተዘግቷል (Offline)'),
       }));
   }
 
@@ -406,6 +413,7 @@ class AdminService {
       phone: agentData.phone,
       bankName: agentData.bankName || 'Telebirr & CBE',
       accountNumber: agentData.accountNumber || agentData.phone,
+      recipientName: agentData.recipientName || agentData.name,
       telegramUsername: (agentData.telegramUsername || '').replace('@', ''),
       pin: agentData.pin || '1234',
       commissionRate: parseFloat(agentData.commissionRate) || 7,
@@ -414,6 +422,8 @@ class AdminService {
       totalDepositsHandled: 0,
       totalCommissionEarned: 0,
       status: 'active',
+      isAvailable: agentData.isAvailable !== undefined ? !!agentData.isAvailable : true,
+      availableNote: agentData.availableNote || 'ክፍት ነው (Instant deposit)',
       createdAt: new Date().toISOString().split('T')[0],
     };
     this.agents.unshift(newAgent);
@@ -429,9 +439,12 @@ class AdminService {
     if (data.phone) agent.phone = data.phone;
     if (data.bankName) agent.bankName = data.bankName;
     if (data.accountNumber) agent.accountNumber = data.accountNumber;
+    if (data.recipientName) agent.recipientName = data.recipientName;
     if (data.telegramUsername !== undefined) agent.telegramUsername = data.telegramUsername.replace('@', '');
     if (data.pin) agent.pin = data.pin;
     if (data.commissionRate) agent.commissionRate = parseFloat(data.commissionRate);
+    if (data.isAvailable !== undefined) agent.isAvailable = !!data.isAvailable;
+    if (data.availableNote !== undefined) agent.availableNote = data.availableNote;
 
     this.saveAgents();
     return { success: true, agent };
@@ -455,6 +468,26 @@ class AdminService {
     return { success: true, agent };
   }
 
+  toggleAgentAvailability(agentId, isAvailable, note) {
+    const agent = this.agents.find((a) => a.id === agentId);
+    if (!agent) return { success: false, error: 'Agent not found' };
+
+    if (typeof isAvailable === 'boolean') {
+      agent.isAvailable = isAvailable;
+    } else {
+      agent.isAvailable = agent.isAvailable === false ? true : false;
+    }
+
+    if (note !== undefined && note !== null) {
+      agent.availableNote = note;
+    } else if (!agent.availableNote) {
+      agent.availableNote = agent.isAvailable ? 'ክፍት ነው (Available)' : 'ተዘግቷል (Offline)';
+    }
+
+    this.saveAgents();
+    return { success: true, agent };
+  }
+
   // --- AGENT PORTAL METHODS (Agent checking & crediting deposits) ---
 
   agentLogin(phone, pin) {
@@ -473,9 +506,12 @@ class AdminService {
         phone: agent.phone,
         bankName: agent.bankName,
         accountNumber: agent.accountNumber,
+        recipientName: agent.recipientName || agent.name,
         telegramUsername: agent.telegramUsername,
         commissionRate: agent.commissionRate,
         balance: agent.balance,
+        isAvailable: agent.isAvailable !== false,
+        availableNote: agent.availableNote || (agent.isAvailable !== false ? 'ክፍት ነው (Available)' : 'ተዘግቷል (Offline)'),
         totalDepositsHandled: agent.totalDepositsHandled,
         totalCommissionEarned: agent.totalCommissionEarned,
       },
@@ -533,9 +569,12 @@ class AdminService {
         phone: agent.phone,
         bankName: agent.bankName,
         accountNumber: agent.accountNumber,
+        recipientName: agent.recipientName || agent.name,
         telegramUsername: agent.telegramUsername,
         commissionRate: agent.commissionRate,
         balance: agent.balance,
+        isAvailable: agent.isAvailable !== false,
+        availableNote: agent.availableNote || (agent.isAvailable !== false ? 'ክፍት ነው (Available)' : 'ተዘግቷል (Offline)'),
         totalDepositsHandled: agent.totalDepositsHandled,
         totalCommissionEarned: agent.totalCommissionEarned,
       },
@@ -803,6 +842,13 @@ class AdminService {
 
     const agent = this.agents.find((a) => a.id === agentId);
     if (!agent) return { success: false, error: 'Selected Agent not found' };
+    if (agent.status !== 'active') return { success: false, error: 'Selected agent account is currently inactive' };
+    if (agent.isAvailable === false) {
+      return {
+        success: false,
+        error: `ይቅርታ፣ ወኪል ${agent.name} በአሁኑ ሰዓት ክፍት አይደለም (Agent is currently offline/unavailable). እባክዎ ክፍት የሆነ ሌላ ወኪል ይምረጡ።`,
+      };
+    }
 
     const num = parseInt(amount);
     if (isNaN(num) || num <= 0) return { success: false, error: 'Invalid deposit amount' };

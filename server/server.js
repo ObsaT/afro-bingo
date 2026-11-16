@@ -346,10 +346,29 @@ app.post('/api/admin/agents/:id/credit', requireAdmin, (req, res) => {
   res.json(result);
 });
 
-// Toggle Agent Status
+// Toggle Agent Status (active / inactive)
 app.post('/api/admin/agents/:id/toggle', requireAdmin, (req, res) => {
   const result = adminService.toggleAgentStatus(req.params.id);
+  io.emit('agents_updated');
   res.json(result);
+});
+
+// Admin Toggle Agent Availability (online / offline / accepting deposits)
+app.post('/api/admin/agents/:id/toggle-availability', requireAdmin, (req, res) => {
+  const { isAvailable, note } = req.body;
+  const result = adminService.toggleAgentAvailability(req.params.id, isAvailable, note);
+  if (result.success) {
+    io.emit('agent_availability_changed', {
+      agentId: req.params.id,
+      isAvailable: result.agent.isAvailable,
+      availableNote: result.agent.availableNote,
+      agent: result.agent,
+    });
+    io.emit('agents_updated');
+    res.json(result);
+  } else {
+    res.status(400).json(result);
+  }
 });
 
 // Update Agent Details (phone, account number, bank, commission, etc.)
@@ -402,7 +421,7 @@ app.post('/api/admin/banks/:id/toggle', requireAdmin, (req, res) => {
 
 // Player confirms deposit (Melbet style: copies ID & generates Telegram dispatch to Agent)
 app.post('/api/wallet/deposit-request', (req, res) => {
-  const { userId, amount, bankId, playerPhone, receiptRef, receiptImage } = req.body;
+  const { userId, amount, bankId, agentId: reqAgentId, playerPhone, receiptRef, receiptImage } = req.body;
   const user = gameEngine.users.get(userId) || { id: userId, username: 'Player_' + userId };
   const bank = bankService.banks.find((b) => b.id === bankId) || bankService.banks[0];
 
@@ -424,18 +443,44 @@ app.post('/api/wallet/deposit-request', (req, res) => {
 
   const refCode = (receiptRef || '').trim() || `REF-${Math.floor(100000 + Math.random() * 900000)}`;
 
-  // Find assigned agent for this bank
-  const agent =
-    (adminService.agents &&
-      adminService.agents.find(
+  // Find assigned agent: prioritize explicit agentId from player, then bank's agent, then available active agent
+  let agent = null;
+  if (reqAgentId) {
+    agent = adminService.agents.find((a) => a.id === reqAgentId);
+  } else {
+    agent =
+      adminService.agents?.find(
         (a) =>
-          a.telegramUsername?.toLowerCase() === bank.agentTelegram?.toLowerCase() ||
-          a.id === bank.agentId
-      )) ||
-    adminService.agents[0];
+          a.status === 'active' &&
+          a.isAvailable !== false &&
+          (a.telegramUsername?.toLowerCase() === bank.agentTelegram?.toLowerCase() || a.id === bank.agentId)
+      ) ||
+      adminService.agents?.find((a) => a.status === 'active' && a.isAvailable !== false) ||
+      adminService.agents?.find(
+        (a) => a.telegramUsername?.toLowerCase() === bank.agentTelegram?.toLowerCase() || a.id === bank.agentId
+      ) ||
+      adminService.agents?.[0];
+  }
 
-  const agentId = agent ? agent.id : 'agent_1';
-  const agentTelegram = agent ? agent.telegramUsername : (bank.agentTelegram || 'bole_afro_agent');
+  if (!agent) {
+    return res.status(400).json({ error: 'የተመረጠው ወኪል አልተገኘም (Selected agent not found)' });
+  }
+
+  if (agent.status !== 'active') {
+    return res.status(400).json({ error: 'ይህ ወኪል በአሁኑ ሰዓት አይሰራም (Selected agent account is currently inactive)' });
+  }
+
+  // --- STRICT AVAILABILITY ENFORCEMENT ---
+  if (agent.isAvailable === false) {
+    return res.status(400).json({
+      error: `ይቅርታ፣ ወኪል "${agent.name}" በአሁኑ ሰዓት ክፍት አይደለም (ይህ ወኪል ክፍያ አይቀበልም)። እባክዎ ክፍት የሆነ ሌላ ወኪል ይምረጡ (This agent is currently offline/unavailable).`,
+    });
+  }
+
+  const agentId = agent.id;
+  const agentTelegram = agent.telegramUsername || (bank.agentTelegram || 'bole_afro_agent');
+  const recipientAccount = agent.accountNumber || bank.accountNumber;
+  const recipientName = agent.recipientName || agent.name || bank.recipientName;
 
   const tx = {
     id: 'tx_dep_' + Date.now(),
@@ -449,11 +494,11 @@ app.post('/api/wallet/deposit-request', (req, res) => {
     receiptImage: receiptImage || null,
     bankId: bank.id,
     bankName: bank.name,
-    recipientAccount: bank.accountNumber,
-    recipientName: bank.recipientName,
+    recipientAccount,
+    recipientName,
     agentId,
     agentTelegram,
-    agentName: agent ? agent.name : 'Official Agent',
+    agentName: agent.name || 'Official Agent',
     status: 'pending',
     createdAt: new Date().toLocaleTimeString(),
     processedAt: null,
@@ -529,6 +574,24 @@ app.post('/api/agent/login', (req, res) => {
 app.get('/api/agent/:id/dashboard', (req, res) => {
   const result = adminService.getAgentDashboard(req.params.id);
   res.json(result);
+});
+
+// Agent Toggles their Own Availability (Online/Offline)
+app.post('/api/agent/:id/toggle-availability', (req, res) => {
+  const { isAvailable, note } = req.body;
+  const result = adminService.toggleAgentAvailability(req.params.id, isAvailable, note);
+  if (result.success) {
+    io.emit('agent_availability_changed', {
+      agentId: req.params.id,
+      isAvailable: result.agent.isAvailable,
+      availableNote: result.agent.availableNote,
+      agent: result.agent,
+    });
+    io.emit('agents_updated');
+    res.json(result);
+  } else {
+    res.status(400).json(result);
+  }
 });
 
 // Agent Verifies and Tops up Player Deposit Request
